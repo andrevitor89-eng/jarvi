@@ -34,7 +34,7 @@ Backend requires a `.env` at `packages/backend/.env` with at minimum:
 - `GOOGLE_CLIENT_ID` – placeholder is fine for API-only testing; real OAuth requires valid credentials
 
 Web requires a `.env` at `packages/web/.env` with:
-- `VITE_API_URL=http://localhost:3001/api`
+- `VITE_API_URL=http://localhost:3001` – the base URL **without** a trailing `/api`. The frontend (`packages/web/src/lib/apiClient.ts` and `src/contexts/AuthContext.tsx`) already prepends `/api/...` to every request, so a `/api` suffix here produces `/api/api/...` requests that 401 with `Access token required` (login appears to fail in the browser even though the backend is healthy).
 
 ### Database
 
