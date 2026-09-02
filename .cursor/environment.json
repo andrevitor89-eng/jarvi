@@ -1,0 +1,14 @@
+{
+  "name": "Jarvi",
+  "install": "bash .cursor/setup.sh",
+  "terminals": [
+    {
+      "name": "dev (backend + web)",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [
+    { "name": "backend", "port": 3001 },
+    { "name": "web", "port": 3000 }
+  ]
+}
