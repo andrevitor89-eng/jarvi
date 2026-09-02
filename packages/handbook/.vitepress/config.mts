@@ -74,6 +74,7 @@ export default defineConfig({
         text: 'Ops / engenharia',
         items: [
           { text: 'Arquitetura', link: '/ARCHITECTURE' },
+          { text: 'Plano QA (bugs ao vivo)', link: '/QA_FIX_PLAN' },
           { text: 'Plano de produção', link: '/PRODUCTION_PLAN' },
           { text: 'Setup de computador', link: '/SETUP_NOVO_COMPUTADOR' },
           { text: 'Stripe', link: '/STRIPE_SETUP' },
