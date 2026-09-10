@@ -10,6 +10,7 @@ import { Button, Divider, Logo, PasswordInput } from '../../components/ui';
 import { GoogleLogin } from '../../components/features/auth';
 import { useForceTheme } from '../../hooks/useForceTheme';
 import { trackPixel, getFbCookies, generateEventId } from '../../lib/metaPixel';
+import { verifyPendingLocation } from '../../lib/verifyEmail';
 import styles from './CriarConta.module.css';
 
 // ============================================================================
@@ -449,7 +450,7 @@ export function CriarConta() {
         { fbc, fbp, eventId, eventSourceUrl: window.location.href },
       );
       if (result.pendingVerification) {
-        navigate('/verify-pending', { state: { email: result.email } });
+        navigate(verifyPendingLocation(result.email));
       } else {
         navigate('/');
       }

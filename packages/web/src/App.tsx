@@ -20,6 +20,7 @@ import { ToastProvider } from './components/ui';
 import { Loading } from './components/ui/Loading';
 import { Layout } from './components/layout';
 import { Login } from './pages/Login';
+import { NotFound } from './pages/NotFound';
 import { TrialExpiredGate } from './components/features/subscription/TrialExpiredGate/TrialExpiredGate';
 
 // Lazy load pages
@@ -58,6 +59,11 @@ const AppRoutes: React.FC = () => {
     </Router>
   );
 };
+
+function PreserveSearchRedirect({ to }: { to: string }) {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+}
 
 function AppSwitch() {
   const location = useLocation();
@@ -120,7 +126,15 @@ function AppSwitch() {
         path="/"
         element={
           <ProtectedRoute>
-            <Layout />
+            <PreserveSearchRedirect to="/tasks" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/tasks?view=calendario" replace />
           </ProtectedRoute>
         }
       />
@@ -170,6 +184,14 @@ function AppSwitch() {
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="*"
+        element={
+          <Suspense fallback={<Loading centered size="lg" />}>
+            <NotFound />
+          </Suspense>
         }
       />
     </Routes>

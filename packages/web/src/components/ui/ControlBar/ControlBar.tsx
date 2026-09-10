@@ -275,6 +275,33 @@ export function ControlBar({
     [addPromptFiles],
   );
 
+  const handleCreateTaskFromPrompt = async () => {
+    if (trialExpired) return;
+    const text = promptText.trim();
+    if (!text || !onCreateTask) return;
+
+    const today = new Date();
+    const dueDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const createdTask = await onCreateTask({
+      title: text,
+      description: '',
+      dueDate,
+    });
+
+    toast.success('Tarefa criada com sucesso', {
+      hasButton: true,
+      action:
+        createdTask && onOpenTaskDetails
+          ? { label: 'Visualizar', onClick: () => onOpenTaskDetails(createdTask) }
+          : undefined,
+    });
+
+    setPromptText('');
+    setPromptAttachments([]);
+    onMobileClose?.();
+  };
+
   const handlePromptSubmit = () => {
     if (trialExpired) return;
     const text = promptText.trim();
@@ -292,7 +319,7 @@ export function ControlBar({
   const handlePromptKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handlePromptSubmit();
+      void handleCreateTaskFromPrompt();
     }
   };
 
@@ -672,7 +699,7 @@ export function ControlBar({
                 type="button"
                 className={styles.sendButton}
                 onClick={handlePromptSubmit}
-                aria-label="Enviar"
+                aria-label="Enviar para a IA"
                 disabled={trialExpired}
               >
                 <PaperPlaneTilt weight="fill" size={20} />

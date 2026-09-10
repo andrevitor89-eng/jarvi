@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Input, PasswordInput, Divider, Logo } from '../../components/ui';
 import { GoogleLogin } from '../../components/features/auth';
 import { useForceTheme } from '../../hooks/useForceTheme';
+import { verifyPendingLocation } from '../../lib/verifyEmail';
 import styles from './Login.module.css';
 
 export const Login: React.FC = () => {
@@ -39,8 +40,7 @@ export const Login: React.FC = () => {
       } else {
         const result = await register(email, name, password);
         if (result.pendingVerification) {
-          // Redirect to verify pending page
-          navigate('/verify-pending', { state: { email: result.email } });
+          navigate(verifyPendingLocation(result.email));
         } else {
           navigate('/');
         }
@@ -50,7 +50,7 @@ export const Login: React.FC = () => {
       if (error && typeof error === 'object' && 'pendingVerification' in error) {
         const loginError = error as { pendingVerification?: boolean; email?: string; message?: string };
         if (loginError.pendingVerification) {
-          navigate('/verify-pending', { state: { email: loginError.email } });
+          navigate(verifyPendingLocation(loginError.email || email));
           return;
         }
       }

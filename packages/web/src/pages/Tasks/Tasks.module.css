@@ -110,6 +110,28 @@
   font-size: var(--typography-body-sm-font-size);
 }
 
+.pendingSectionErrorRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sizes-3);
+}
+
+.pendingRetry {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--semantic-content-info, var(--semantic-content-primary));
+  font-size: var(--typography-body-sm-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.pendingRetry:hover {
+  opacity: 0.85;
+}
+
 /* Section */
 .section {
   margin-bottom: var(--sizes-1);

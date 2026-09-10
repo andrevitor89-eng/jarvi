@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Button, Logo, OtpInput } from '../../components/ui';
 import { useForceTheme } from '../../hooks/useForceTheme';
 import { trackRegistrationCompleted } from '../../lib/openaiPixel';
+import { clearVerifyEmail, readVerifyEmail } from '../../lib/verifyEmail';
 import styles from './VerifyPending.module.css';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -20,7 +21,11 @@ export const VerifyPending: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email || '';
+  const [searchParams] = useSearchParams();
+  const email = useMemo(
+    () => readVerifyEmail(location.state?.email, searchParams.get('email')),
+    [location.state, searchParams],
+  );
 
   const handleVerifyCode = async (overrideCode?: string) => {
     if (!email) {
@@ -58,6 +63,7 @@ export const VerifyPending: React.FC = () => {
       }
 
       trackRegistrationCompleted(data.user?.id ? `cr_${data.user.id}` : undefined);
+      clearVerifyEmail();
 
       // Auto-login: salva token e redireciona para a home
       if (data.token) {
