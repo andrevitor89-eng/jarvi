@@ -26,6 +26,18 @@ Do not put product doctrine only in `.cursor/rules`. Markdown in git is the sour
 - Marketing UI — [packages/marketing/compliance.md](packages/marketing/compliance.md) (stub; do not import web Dialog rules)
 - Mobile UI — [packages/mobile/compliance.md](packages/mobile/compliance.md) (stub; do not import web Dialog rules)
 
+### PostHog MCP
+
+Project MCP config lives in [`.cursor/mcp.json`](.cursor/mcp.json) (`https://mcp.posthog.com/mcp`, no API keys). The PostHog plugin is already enabled in [`.cursor/settings.json`](.cursor/settings.json).
+
+That file is enough for Cursor Desktop after OAuth. **This Cloud Agent run does not gain PostHog tools mid-session.** For Cloud Agents:
+
+1. Add the same HTTP server under [Dashboard → Integrations & MCP](https://cursor.com/dashboard/integrations) (team) or the MCP dropdown on [cursor.com/agents](https://cursor.com/agents) (personal).
+2. Complete PostHog OAuth (per user). Do not commit `phx_` keys.
+3. Start a **new** Cloud Agent — then triage `$exception` / error issues instead of inventing them.
+
+Docs: [PostHog MCP for Cursor](https://posthog.com/docs/model-context-protocol/cursor).
+
 ### Environment variables
 
 Backend requires a `.env` at `packages/backend/.env` with at minimum:
