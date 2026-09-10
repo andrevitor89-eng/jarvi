@@ -80,6 +80,7 @@ export default defineConfig({
           { text: 'WhatsApp (tarefas)', link: '/WHATSAPP_TASKS' },
           { text: 'WhatsApp (produção)', link: '/WHATSAPP_PRODUCTION_RUNBOOK' },
           { text: 'Lembretes de voz', link: '/VOICE_REMINDERS_RUNBOOK' },
+          { text: 'Varredura de erros (2026-09-10)', link: '/ERROR_SWEEP_2026-09-10' },
         ],
       },
     ],
