@@ -8,6 +8,20 @@ const nextConfig = {
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
   // Required so PostHog's reverse-proxy paths (with/without trailing slash) work.
   skipTrailingSlashRedirect: true,
+  async redirects() {
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.jarvi.life').replace(
+      /\/$/,
+      '',
+    );
+    return [
+      { source: '/criar-conta', destination: `${appUrl}/criar-conta`, permanent: false },
+      { source: '/privacidade', destination: '/politica-de-privacidade', permanent: true },
+      { source: '/termos', destination: '/termos-de-uso', permanent: true },
+      { source: '/privacy', destination: '/politica-de-privacidade', permanent: true },
+      { source: '/terms', destination: '/termos-de-uso', permanent: true },
+      { source: '/lgpd', destination: '/politica-de-privacidade', permanent: true },
+    ];
+  },
   async rewrites() {
     // Same-origin reverse proxy for PostHog ingestion, to dodge ad/privacy
     // blockers that block us.i.posthog.com. Mirrors the web app's vercel.json.

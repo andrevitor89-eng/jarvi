@@ -29,6 +29,7 @@ import type { FilterState } from '../../components/features/tasks/FilterPopover/
 import { TaskEmptyState } from '../../components/features/tasks/EmptyState';
 import { useMergedTaskCategories } from '../../hooks/useMergedTaskCategories';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   DndContext,
@@ -158,11 +159,34 @@ const ALL_SECTIONS_OPEN: Record<string, boolean> = {
   completadas: false,
 };
 
+const VIEW_QUERY_TO_LIST: Record<string, ListType> = {
+  calendario: 'later',
+  'sem-data': 'noDate',
+  vencidas: 'overdue',
+  recorrentes: 'recurring',
+};
+
+const LIST_TO_VIEW_QUERY: Partial<Record<ListType, string>> = {
+  later: 'calendario',
+  noDate: 'sem-data',
+  overdue: 'vencidas',
+  recurring: 'recorrentes',
+};
+
+const TASK_PARAM = 'task';
+const CHAT_PARAM = 'chat';
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function Tasks() {
-  const [selectedList, setSelectedList] = useState<ListType>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [selectedList, setSelectedList] = useState<ListType>(() => {
+    const view = new URLSearchParams(window.location.search).get('view');
+    return (view && VIEW_QUERY_TO_LIST[view]) || 'all';
+  });
   const [selectedCustomListId, setSelectedCustomListId] = useState<string | null>(null);
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
   const [isCreateListOpen, setIsCreateListOpen] = useState(false);
@@ -219,6 +243,7 @@ export function Tasks() {
     pendingTasks,
     isLoading: isPendingTasksLoading,
     error: pendingTasksError,
+    refresh: refreshPendingTasks,
     confirm: confirmPendingTask,
     reject: rejectPendingTask,
     update: updatePendingTask,
@@ -316,13 +341,40 @@ export function Tasks() {
     }
   };
 
+  const overlayState = (location.state as { overlay?: string } | null)?.overlay;
+
+  const closeOverlayParam = useCallback(
+    (key: string) => {
+      if (overlayState === key) {
+        navigate(-1);
+        return;
+      }
+      const params = new URLSearchParams(searchParams);
+      if (!params.has(key)) return;
+      params.delete(key);
+      setSearchParams(params, { replace: true });
+    },
+    [navigate, overlayState, searchParams, setSearchParams],
+  );
+
+  const writeOverlayParam = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams);
+      const alreadyOpen = params.get(key) === value;
+      params.set(key, value);
+      setSearchParams(params, { replace: alreadyOpen, state: { overlay: key } });
+    },
+    [searchParams, setSearchParams],
+  );
+
   const dismissChatForTaskPanel = useCallback(() => {
     setIsChatOpen(false);
     setChatInitialMessage(undefined);
     setChatInitialAttachments(undefined);
     setExpandedFromList(false);
     setTaskPinnedInCenter(false);
-  }, []);
+    closeOverlayParam(CHAT_PARAM);
+  }, [closeOverlayParam]);
 
   const handleEdit = (task: any) => {
     // Keep an open chat on the right; open task details in the center column.
@@ -331,6 +383,7 @@ export function Tasks() {
       setTaskPinnedInCenter(true);
     }
     setSelectedTask(task);
+    writeOverlayParam(TASK_PARAM, task.id);
   };
 
   const handleTaskClick = (task: Task) => {
@@ -342,6 +395,7 @@ export function Tasks() {
     }
     setSelectedTask(task);
     setSelectedPendingTask(null);
+    writeOverlayParam(TASK_PARAM, task.id);
   };
 
   const handleToggleCompletion = async (taskId: string) => {
@@ -373,6 +427,8 @@ export function Tasks() {
     setExpandedFromList(false);
     setTaskPinnedInCenter(false);
     setIsChatOpen(false);
+    closeOverlayParam(TASK_PARAM);
+    closeOverlayParam(CHAT_PARAM);
   };
 
   const handlePendingTaskClick = (task: PendingTask) => {
@@ -391,8 +447,10 @@ export function Tasks() {
     setTaskPinnedInCenter(false);
     if (chatMode === 'task') {
       setIsChatOpen(false);
+      closeOverlayParam(CHAT_PARAM);
     }
-  }, [chatMode]);
+    closeOverlayParam(TASK_PARAM);
+  }, [chatMode, closeOverlayParam]);
 
   const handleExpandTaskDetails = useCallback(() => {
     setExpandedFromList(true);
@@ -414,8 +472,9 @@ export function Tasks() {
       setTaskPinnedInCenter(true);
       setChatMode('task');
       setIsChatOpen(true);
+      writeOverlayParam(CHAT_PARAM, '1');
     }
-  }, [isMobile]);
+  }, [isMobile, writeOverlayParam]);
 
   const handleCloseMobileChatOverlay = useCallback(() => {
     setIsMobileChatOverlayOpen(false);
@@ -432,13 +491,15 @@ export function Tasks() {
       setChatInitialAttachments(attachments && attachments.length > 0 ? attachments : undefined);
     }
     setIsChatOpen(true);
-  }, []);
+    writeOverlayParam(CHAT_PARAM, '1');
+  }, [writeOverlayParam]);
 
   const handleCloseChat = useCallback(() => {
     setIsChatOpen(false);
     setChatInitialMessage(undefined);
     setChatInitialAttachments(undefined);
-  }, []);
+    closeOverlayParam(CHAT_PARAM);
+  }, [closeOverlayParam]);
 
   // Closes whichever panel is currently shown in the right slot. Used by the
   // mobile bottom sheet (backdrop click / drag-to-close).
@@ -1067,7 +1128,41 @@ export function Tasks() {
     setSelectedCustomListId(null);
     setSelectedCategoryName(null);
     setSelectedTask(null);
+
+    const params = new URLSearchParams(searchParams);
+    const view = LIST_TO_VIEW_QUERY[listType];
+    if (view) params.set('view', view);
+    else params.delete('view');
+    params.delete(TASK_PARAM);
+    params.delete(CHAT_PARAM);
+    setSearchParams(params, { replace: true });
   };
+
+  useEffect(() => {
+    if (selectedCustomListId || selectedCategoryName) return;
+    const view = searchParams.get('view');
+    const listFromUrl = view ? VIEW_QUERY_TO_LIST[view] : 'all';
+    if (listFromUrl && listFromUrl !== selectedList) {
+      setSelectedList(listFromUrl);
+    }
+  }, [searchParams, selectedCustomListId, selectedCategoryName, selectedList]);
+
+  useEffect(() => {
+    const taskId = searchParams.get(TASK_PARAM);
+    if (taskId) {
+      setSelectedTask((prev) => {
+        if (prev?.id === taskId) return prev;
+        return tasks.find((task) => task.id === taskId) ?? prev;
+      });
+      return;
+    }
+    setSelectedTask((prev) => (prev ? null : prev));
+  }, [searchParams, tasks]);
+
+  useEffect(() => {
+    const chatOpen = searchParams.get(CHAT_PARAM) === '1';
+    setIsChatOpen(chatOpen);
+  }, [searchParams]);
 
   const handleCustomListSelect = (listId: string) => {
     const isDeselecting = selectedCustomListId === listId;
@@ -1076,6 +1171,11 @@ export function Tasks() {
     setSelectedCategoryName(null);
     setSelectedCustomListId((prev) => (prev === listId ? null : listId));
     setSelectedTask(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete('view');
+    params.delete(TASK_PARAM);
+    params.delete(CHAT_PARAM);
+    setSearchParams(params, { replace: true });
   };
 
   const handleCategorySelect = (categoryName: string) => {
@@ -1085,6 +1185,11 @@ export function Tasks() {
     setSelectedCustomListId(null);
     setSelectedCategoryName((prev) => (prev === categoryName ? null : categoryName));
     setSelectedTask(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete('view');
+    params.delete(TASK_PARAM);
+    params.delete(CHAT_PARAM);
+    setSearchParams(params, { replace: true });
   };
 
   const allSectionsExpanded = Object.entries(openSections)
@@ -2047,7 +2152,16 @@ export function Tasks() {
                 )}
 
                 {pendingTasksError && (
-                  <p className={styles.pendingSectionError}>{pendingTasksError}</p>
+                  <div className={styles.pendingSectionErrorRow}>
+                    <p className={styles.pendingSectionError}>{pendingTasksError}</p>
+                    <button
+                      type="button"
+                      className={styles.pendingRetry}
+                      onClick={() => void refreshPendingTasks()}
+                    >
+                      Tentar de novo
+                    </button>
+                  </div>
                 )}
 
                 {pendingTasks.length > 0 && (

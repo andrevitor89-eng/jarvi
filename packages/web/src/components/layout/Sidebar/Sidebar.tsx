@@ -140,6 +140,24 @@ const NAV_ITEMS: Array<{ id: ListType; label: string; icon: typeof Checks }> = [
   { id: 'recurring', label: 'Recorrentes', icon: Repeat },
 ];
 
+const SETTINGS_PARAM = 'conta';
+const SETTINGS_PAGES: SettingsPage[] = [
+  'profile',
+  'payments',
+  'apps',
+  'memory',
+  'categories',
+  'filters',
+  'appearance',
+];
+
+function parseSettingsPage(value: string | null): SettingsPage | null {
+  if (value && (SETTINGS_PAGES as string[]).includes(value)) {
+    return value as SettingsPage;
+  }
+  return null;
+}
+
 type WhatsAppPromoPlacement = 'hidden' | 'modal' | 'floating';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -243,13 +261,33 @@ export function Sidebar({
   }, [isSettingsOpen, mobileSettingsPage]);
 
   // Opens a settings page — bottom sheet on mobile, modal on desktop.
+  // Push `?conta=` so Browser Back closes the overlay. Switching tabs replaces.
   const openSettings = (page: SettingsPage) => {
+    const params = new URLSearchParams(location.search);
+    const alreadyOpen =
+      params.has(SETTINGS_PARAM) ||
+      location.pathname === '/settings' ||
+      isSettingsOpen ||
+      mobileSettingsPage !== null;
+
+    params.set(SETTINGS_PARAM, page);
+    const pathname =
+      location.pathname === '/settings' || location.pathname === '/'
+        ? '/tasks'
+        : location.pathname;
+
+    navigate(
+      { pathname, search: `?${params.toString()}` },
+      { replace: alreadyOpen, state: { overlay: SETTINGS_PARAM } },
+    );
+
     if (isMobile) {
       setMobileSettingsPage(page);
-    } else {
-      setSettingsInitialPage(page);
-      setIsSettingsOpen(true);
+      return;
     }
+
+    setSettingsInitialPage(page);
+    setIsSettingsOpen(true);
   };
 
   useEffect(() => {
@@ -286,6 +324,26 @@ export function Sidebar({
   const [feedbackKind, setFeedbackKind] = useState<FeedbackKind | null>(null);
 
   const showProCta = subscription?.status !== 'active';
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pageFromUrl = parseSettingsPage(params.get(SETTINGS_PARAM));
+
+    if (location.pathname === '/settings' && !pageFromUrl) {
+      navigate('/tasks?conta=profile', { replace: true });
+      return;
+    }
+
+    if (pageFromUrl) {
+      setSettingsInitialPage(pageFromUrl);
+      if (isMobile) setMobileSettingsPage(pageFromUrl);
+      else setIsSettingsOpen(true);
+      return;
+    }
+
+    if (!isMobile) setIsSettingsOpen(false);
+    else setMobileSettingsPage(null);
+  }, [location.pathname, location.search, isMobile, navigate]);
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -393,23 +451,36 @@ export function Sidebar({
     openSettings('filters');
   };
 
+  const closeSettingsOverlay = () => {
+    const overlayState = (location.state as { overlay?: string } | null)?.overlay;
+    if (overlayState === SETTINGS_PARAM) {
+      navigate(-1);
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    params.delete(SETTINGS_PARAM);
+    const pathname = location.pathname === '/settings' ? '/tasks' : location.pathname;
+    navigate(
+      { pathname, search: params.toString() ? `?${params.toString()}` : '' },
+      { replace: true },
+    );
+  };
+
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
-    navigate('/tasks', { replace: true });
+    closeSettingsOverlay();
   };
 
   const handleCloseMobileSettings = () => {
     setMobileSettingsPage(null);
-    if (location.pathname === '/settings') {
-      navigate('/tasks', { replace: true });
-    }
+    closeSettingsOverlay();
   };
 
   // Picks a settings page from the mobile user dropdown.
   const handleMobileSettingsSelect = (page: SettingsPage) => {
     setIsDropdownOpen(false);
-    setMobileSettingsPage(page);
     closeMobileSidebar();
+    openSettings(page);
   };
 
   const isSidebarLocked = !isMobile && !isCollapsed;
