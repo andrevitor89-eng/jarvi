@@ -57,6 +57,7 @@ export default defineConfig({
         items: [
           { text: 'Mapa da documentação', link: '/' },
           { text: 'Produto', link: '/product/' },
+          { text: 'Instagram → tarefa', link: '/product/instagram-tarefas' },
           { text: 'Decisões', link: '/decisions/' },
           { text: '0001 — Um overlay por vez', link: '/decisions/0001-one-overlay' },
           { text: 'Marca e voz', link: '/brand/' },
