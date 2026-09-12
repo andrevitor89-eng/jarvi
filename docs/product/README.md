@@ -18,6 +18,10 @@ A Jarvi é um app de **tarefas e produtividade**: capturar, organizar e acompanh
 
 Backend (`packages/backend`) e shared (`packages/shared`) não são superfícies de UI; não têm `compliance.md` de interface.
 
+## Specs de produto
+
+- [Instagram cria tarefa](instagram-tarefas.md) — marcar `@jarvi.life` (ou DM) vira tarefa. PDF: [instagram-tarefas.pdf](instagram-tarefas.pdf). A feature ainda não está no código; o doc é o plano.
+
 ## Quando for construir UI
 
 Depois de saber *o quê*, abra o contrato da superfície — não este arquivo:
