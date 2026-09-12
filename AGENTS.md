@@ -34,7 +34,7 @@ Backend requires a `.env` at `packages/backend/.env` with at minimum:
 - `GOOGLE_CLIENT_ID` – placeholder is fine for API-only testing; real OAuth requires valid credentials
 
 Web requires a `.env` at `packages/web/.env` with:
-- `VITE_API_URL=http://localhost:3001/api`
+- `VITE_API_URL=http://localhost:3001` – the backend origin **without** a `/api` suffix. The web client appends `/api` itself (e.g. `${VITE_API_URL}/api/auth/login`), so adding `/api` here produces a broken `/api/api/...` path and login fails with "Access token required".
 
 ### Database
 
