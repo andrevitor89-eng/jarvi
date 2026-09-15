@@ -17,7 +17,7 @@ import type { AgentTurnUsage } from './types';
 export interface AgentTurnTelemetryInput {
   /** PostHog distinct_id — the user's email (see posthogService convention). */
   email: string;
-  channel: 'web' | 'whatsapp';
+  channel: 'web' | 'whatsapp' | 'instagram';
   /** Raw `users.subscription_status` (e.g. 'active' | 'trialing' | 'none'). */
   subscriptionStatus: string;
   usage: AgentTurnUsage;

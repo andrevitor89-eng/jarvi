@@ -21,6 +21,7 @@ export interface Task {
   title: string;
   description?: string;
   original_whatsapp_content?: string | null;
+  original_instagram_content?: string | null;
   media_attachments?: string | null;
   completed: boolean;
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -230,9 +231,12 @@ export const TaskProvider: React.FC<TaskProviderProps> = ({ children }) => {
       transports: ['websocket', 'polling'],
     });
 
-    socket.on('task:created', () => {
+    socket.on('task:created', (payload?: { source?: string }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      toast.success('Nova tarefa criada via WhatsApp.');
+      const source = payload?.source;
+      const via =
+        source === 'instagram' ? 'Instagram' : source === 'gmail' ? 'Gmail' : 'WhatsApp';
+      toast.success(`Nova tarefa criada via ${via}.`);
     });
 
     socket.on('connect_error', (err) => {

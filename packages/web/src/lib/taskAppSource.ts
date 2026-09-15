@@ -1,5 +1,6 @@
 import whatsappIcon from '../assets/icons/whatsapp.svg';
 import gmailIcon from '../assets/icons/gmail.svg';
+import instagramIcon from '../assets/icons/instagram.svg';
 import { Task } from '../contexts/TaskContext';
 
 export interface TaskAppSource {
@@ -14,6 +15,9 @@ export interface TaskAppSource {
 export function getTaskAppSource(task: Task): TaskAppSource | null {
   if (task.source === 'gmail') {
     return { name: 'Gmail', icon: gmailIcon };
+  }
+  if (task.source === 'instagram' || task.original_instagram_content) {
+    return { name: 'Instagram', icon: instagramIcon };
   }
   if (task.source === 'whatsapp' || task.original_whatsapp_content) {
     return { name: 'Whatsapp', icon: whatsappIcon };

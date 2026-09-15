@@ -5,6 +5,7 @@ import { Chip } from '../../../ui';
 import styles from './PendingTaskDetailsSidebar.module.css';
 import whatsappIcon from '../../../../assets/icons/whatsapp.svg';
 import gmailIcon from '../../../../assets/icons/gmail.svg';
+import instagramIcon from '../../../../assets/icons/instagram.svg';
 
 interface PendingTaskDetailsSidebarProps {
   task: PendingTask | null;
@@ -37,6 +38,7 @@ const formatDate = (value: string | null): string | null => {
 
 const getAppSource = (source: string) => {
   if (source === 'gmail') return { name: 'Gmail', icon: gmailIcon };
+  if (source === 'instagram') return { name: 'Instagram', icon: instagramIcon };
   if (source === 'whatsapp') return { name: 'WhatsApp', icon: whatsappIcon };
   return null;
 };

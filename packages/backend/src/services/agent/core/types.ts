@@ -103,7 +103,7 @@ export interface ToolExecutionResult {
 // ---------------------------------------------------------------------------
 
 export interface ChannelProfile {
-  id: 'whatsapp' | 'web';
+  id: 'whatsapp' | 'web' | 'instagram';
   /** Where create_task writes — direct insert vs awaiting-approval queue. */
   taskCreationTarget: 'tasks' | 'pending_tasks';
   /** Subset of AI_TOOLS this channel exposes to the model. */
@@ -162,6 +162,9 @@ export interface AgentContext {
   /** Channel-specific metadata (e.g. WhatsApp phone / message SID). */
   whatsappPhone?: string;
   whatsappMessageSid?: string;
+  instagramCommentId?: string | null;
+  instagramMediaId?: string | null;
+  instagramPermalink?: string | null;
 }
 
 // ---------------------------------------------------------------------------

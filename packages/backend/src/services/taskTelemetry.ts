@@ -10,7 +10,7 @@
 
 import { captureServer } from './posthogService';
 
-export type TaskCreatedSource = 'web' | 'agent_web' | 'whatsapp' | 'gmail';
+export type TaskCreatedSource = 'web' | 'agent_web' | 'whatsapp' | 'gmail' | 'instagram';
 
 export interface TaskCreatedTelemetryInput {
   email: string;
@@ -40,5 +40,6 @@ export function recordTaskCreated(input: TaskCreatedTelemetryInput): void {
 export function pendingSourceToAnalytics(source: string | null): TaskCreatedSource {
   if (source === 'gmail') return 'gmail';
   if (source === 'whatsapp') return 'whatsapp';
+  if (source === 'instagram') return 'instagram';
   return 'web';
 }

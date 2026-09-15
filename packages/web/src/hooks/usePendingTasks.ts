@@ -174,7 +174,8 @@ export const usePendingTasks = (): UsePendingTasksResult => {
     });
 
     socket.on('pending-task:created', (payload: { id: string; source?: string }) => {
-      const sourceLabel = payload.source === 'gmail' ? 'Gmail' : 'WhatsApp';
+      const sourceLabel =
+        payload.source === 'gmail' ? 'Gmail' : payload.source === 'instagram' ? 'Instagram' : 'WhatsApp';
       toast.success(`Nova tarefa sugerida via ${sourceLabel}.`);
       void refresh();
     });

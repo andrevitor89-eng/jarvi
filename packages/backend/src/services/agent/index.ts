@@ -7,5 +7,6 @@
  */
 
 export { runWhatsappAgent, type RunWhatsappAgentOptions } from './channels/whatsapp';
+export { runInstagramAgent, type RunInstagramAgentOptions } from './channels/instagram';
 export { streamChat, type SSEEvent, type ChatMessage } from './channels/web';
 export { isRateLimitError, isRequestTooLargeError } from './core/runAgent';

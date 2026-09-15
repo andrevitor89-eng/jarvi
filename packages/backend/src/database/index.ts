@@ -1098,6 +1098,57 @@ const runMigrations = async (): Promise<void> => {
           // Column already exists, ignore
         }
       }
+
+      const instagramUserMigrations = [
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_igsid TEXT',
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_username TEXT',
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_verified BOOLEAN DEFAULT FALSE',
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_link_code TEXT',
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_link_code_expires_at TIMESTAMP',
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_connected_at TIMESTAMP',
+      ];
+      for (const migration of instagramUserMigrations) {
+        try {
+          await client.query(migration);
+        } catch (e) {
+          // Column already exists, ignore
+        }
+      }
+
+      try {
+        await client.query(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_instagram_igsid_unique ON users (instagram_igsid)'
+        );
+      } catch (e) {
+        // Index already exists, ignore
+      }
+
+      const instagramTaskMigrations = [
+        'ALTER TABLE tasks ADD COLUMN IF NOT EXISTS original_instagram_content TEXT',
+        'ALTER TABLE tasks ADD COLUMN IF NOT EXISTS instagram_comment_id TEXT',
+        'ALTER TABLE tasks ADD COLUMN IF NOT EXISTS instagram_media_id TEXT',
+        'ALTER TABLE tasks ADD COLUMN IF NOT EXISTS instagram_permalink TEXT',
+      ];
+      for (const migration of instagramTaskMigrations) {
+        try {
+          await client.query(migration);
+        } catch (e) {
+          // Column already exists, ignore
+        }
+      }
+
+      try {
+        await client.query(`CREATE TABLE IF NOT EXISTS instagram_events (
+          id TEXT PRIMARY KEY,
+          event_id TEXT NOT NULL UNIQUE,
+          user_id TEXT,
+          task_id TEXT,
+          status TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+      } catch (e) {
+        // Table already exists, ignore
+      }
     } finally {
       client.release();
     }
@@ -1500,6 +1551,57 @@ const runMigrations = async (): Promise<void> => {
       } catch (e) {
         // Column already exists, ignore
       }
+    }
+
+    const instagramUserMigrationsSqlite = [
+      'ALTER TABLE users ADD COLUMN instagram_igsid TEXT',
+      'ALTER TABLE users ADD COLUMN instagram_username TEXT',
+      'ALTER TABLE users ADD COLUMN instagram_verified BOOLEAN DEFAULT FALSE',
+      'ALTER TABLE users ADD COLUMN instagram_link_code TEXT',
+      'ALTER TABLE users ADD COLUMN instagram_link_code_expires_at DATETIME',
+      'ALTER TABLE users ADD COLUMN instagram_connected_at DATETIME',
+    ];
+    for (const migration of instagramUserMigrationsSqlite) {
+      try {
+        await db.exec(migration);
+      } catch (e) {
+        // Column already exists, ignore
+      }
+    }
+
+    try {
+      await db.exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_instagram_igsid_unique ON users (instagram_igsid)'
+      );
+    } catch (e) {
+      // Index already exists, ignore
+    }
+
+    const instagramTaskMigrationsSqlite = [
+      'ALTER TABLE tasks ADD COLUMN original_instagram_content TEXT',
+      'ALTER TABLE tasks ADD COLUMN instagram_comment_id TEXT',
+      'ALTER TABLE tasks ADD COLUMN instagram_media_id TEXT',
+      'ALTER TABLE tasks ADD COLUMN instagram_permalink TEXT',
+    ];
+    for (const migration of instagramTaskMigrationsSqlite) {
+      try {
+        await db.exec(migration);
+      } catch (e) {
+        // Column already exists, ignore
+      }
+    }
+
+    try {
+      await db.exec(`CREATE TABLE IF NOT EXISTS instagram_events (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL UNIQUE,
+        user_id TEXT,
+        task_id TEXT,
+        status TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+    } catch (e) {
+      // Table already exists, ignore
     }
   }
 };

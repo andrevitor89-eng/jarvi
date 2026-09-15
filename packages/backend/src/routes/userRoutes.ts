@@ -874,6 +874,187 @@ router.delete('/whatsapp-link', authenticateToken, async (req: Request, res: Res
   }
 });
 
+const generateInstagramLinkCode = (): string =>
+  Math.floor(100000 + Math.random() * 900000).toString();
+
+/**
+ * GET /api/users/instagram-link
+ */
+router.get('/instagram-link', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Usuário não autenticado' });
+      return;
+    }
+
+    let user:
+      | {
+          instagram_username?: string | null;
+          instagram_verified?: boolean | number | null;
+          instagram_link_code?: string | null;
+          instagram_link_code_expires_at?: string | null;
+        }
+      | undefined;
+
+    if (isPostgreSQL()) {
+      const result = await getPool().query(
+        `SELECT instagram_username, instagram_verified, instagram_link_code, instagram_link_code_expires_at
+         FROM users WHERE id = $1`,
+        [userId],
+      );
+      user = result.rows[0];
+    } else {
+      user = await getDatabase().get(
+        `SELECT instagram_username, instagram_verified, instagram_link_code, instagram_link_code_expires_at
+         FROM users WHERE id = ?`,
+        [userId],
+      );
+    }
+
+    if (!user) {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+      return;
+    }
+
+    const linked = Boolean(user.instagram_verified);
+    const expiresAtRaw = user.instagram_link_code_expires_at || null;
+    const expiresAtDate = expiresAtRaw ? new Date(expiresAtRaw) : null;
+    const hasValidExpiry =
+      !!expiresAtDate &&
+      !Number.isNaN(expiresAtDate.getTime()) &&
+      expiresAtDate.getTime() > Date.now();
+    const awaitingCode = Boolean(!linked && user.instagram_link_code && hasValidExpiry);
+    const username =
+      typeof user.instagram_username === 'string' && user.instagram_username.trim()
+        ? user.instagram_username.trim()
+        : null;
+
+    res.json({
+      linked,
+      username,
+      awaitingCode,
+      linkCode: awaitingCode ? user.instagram_link_code : null,
+      linkCodeDisplay: awaitingCode && user.instagram_link_code ? `LIGA ${user.instagram_link_code}` : null,
+      linkCodeExpiresAt: awaitingCode && expiresAtDate ? expiresAtDate.toISOString() : null,
+    });
+  } catch (error) {
+    console.error('Error fetching Instagram link status:', error);
+    res.status(500).json({ error: 'Erro ao carregar status de vinculação do Instagram' });
+  }
+});
+
+/**
+ * POST /api/users/instagram-link/request
+ * Generates LIGA code shown in the app; user DMs it to @jarvi.life.
+ */
+router.post('/instagram-link/request', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Usuário não autenticado' });
+      return;
+    }
+
+    let alreadyLinked = false;
+    if (isPostgreSQL()) {
+      const existing = await getPool().query(
+        'SELECT instagram_verified FROM users WHERE id = $1',
+        [userId],
+      );
+      alreadyLinked = Boolean(existing.rows[0]?.instagram_verified);
+    } else {
+      const existing = await getDatabase().get(
+        'SELECT instagram_verified FROM users WHERE id = ?',
+        [userId],
+      );
+      alreadyLinked = Boolean(existing?.instagram_verified);
+    }
+    if (alreadyLinked) {
+      res.status(409).json({
+        error: 'Instagram já está vinculado. Desvincule antes de gerar um novo código.',
+      });
+      return;
+    }
+
+    const linkCode = generateInstagramLinkCode();
+    const now = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    if (isPostgreSQL()) {
+      await getPool().query(
+        `UPDATE users
+         SET instagram_verified = FALSE,
+             instagram_link_code = $1,
+             instagram_link_code_expires_at = $2,
+             updated_at = $3
+         WHERE id = $4`,
+        [linkCode, expiresAt, now, userId],
+      );
+    } else {
+      await getDatabase().run(
+        `UPDATE users
+         SET instagram_verified = 0,
+             instagram_link_code = ?,
+             instagram_link_code_expires_at = ?,
+             updated_at = ?
+         WHERE id = ?`,
+        [linkCode, expiresAt, now, userId],
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Mande este código no Direct da @jarvi.life.',
+      linkCode,
+      linkCodeDisplay: `LIGA ${linkCode}`,
+      expiresAt,
+    });
+  } catch (error) {
+    console.error('Error requesting Instagram link:', error);
+    res.status(500).json({ error: 'Erro ao gerar código do Instagram' });
+  }
+});
+
+/**
+ * DELETE /api/users/instagram-link
+ */
+router.delete('/instagram-link', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Usuário não autenticado' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    if (isPostgreSQL()) {
+      await getPool().query(
+        `UPDATE users
+         SET instagram_igsid = NULL, instagram_username = NULL, instagram_verified = FALSE,
+             instagram_link_code = NULL, instagram_link_code_expires_at = NULL,
+             instagram_connected_at = NULL, updated_at = $1
+         WHERE id = $2`,
+        [now, userId],
+      );
+    } else {
+      await getDatabase().run(
+        `UPDATE users
+         SET instagram_igsid = NULL, instagram_username = NULL, instagram_verified = 0,
+             instagram_link_code = NULL, instagram_link_code_expires_at = NULL,
+             instagram_connected_at = NULL, updated_at = ?
+         WHERE id = ?`,
+        [now, userId],
+      );
+    }
+
+    res.json({ success: true, message: 'Vinculação do Instagram removida.' });
+  } catch (error) {
+    console.error('Error unlinking Instagram:', error);
+    res.status(500).json({ error: 'Erro ao remover vinculação do Instagram' });
+  }
+});
+
 /**
  * GET /api/users/memory-profile
  * Get authenticated user's AI memory profile

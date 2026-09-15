@@ -249,7 +249,7 @@ const ALL_TOOLS: Record<ToolName, ChatCompletionTool> = {
           },
           connected_app: {
             type: 'string',
-            enum: ['whatsapp'],
+            enum: ['whatsapp', 'instagram'],
             description: 'Filtrar por app de origem',
           },
           show_completed: {
@@ -288,7 +288,7 @@ const ALL_TOOLS: Record<ToolName, ChatCompletionTool> = {
           },
           connected_app: {
             type: 'string',
-            enum: ['whatsapp'],
+            enum: ['whatsapp', 'instagram'],
             description: 'Novo filtro de app (null para remover)',
           },
           show_completed: {
@@ -463,8 +463,12 @@ async function executeCreateTask(
   );
   const recurrenceUntil = sanitizeRecurrenceUntil(args.recurrence_until);
 
-  const source = profile.id === 'whatsapp' ? 'whatsapp' : 'manual';
-  const originalContent = profile.id === 'whatsapp' ? (ctx.originalUserMessage ?? null) : null;
+  const source =
+    profile.id === 'whatsapp' ? 'whatsapp' : profile.id === 'instagram' ? 'instagram' : 'manual';
+  const originalContent =
+    profile.id === 'whatsapp' || profile.id === 'instagram'
+      ? (ctx.originalUserMessage ?? null)
+      : null;
 
   return executeCreateTaskAsActive(
     {
@@ -481,6 +485,9 @@ async function executeCreateTask(
       now,
       source,
       originalContent,
+      instagramCommentId: ctx.instagramCommentId ?? null,
+      instagramMediaId: ctx.instagramMediaId ?? null,
+      instagramPermalink: ctx.instagramPermalink ?? null,
     },
     ctx,
   );
@@ -500,6 +507,9 @@ interface CreateTaskInput {
   now: string;
   source?: string;
   originalContent?: string | null;
+  instagramCommentId?: string | null;
+  instagramMediaId?: string | null;
+  instagramPermalink?: string | null;
 }
 
 async function executeCreateTaskAsActive(
@@ -521,12 +531,16 @@ async function executeCreateTaskAsActive(
     now,
   } = input;
   const source = input.source ?? 'manual';
-  const originalContent = input.originalContent ?? null;
+  const originalWhatsapp = source === 'whatsapp' ? (input.originalContent ?? null) : null;
+  const originalInstagram = source === 'instagram' ? (input.originalContent ?? null) : null;
+  const instagramCommentId = source === 'instagram' ? (input.instagramCommentId ?? null) : null;
+  const instagramMediaId = source === 'instagram' ? (input.instagramMediaId ?? null) : null;
+  const instagramPermalink = source === 'instagram' ? (input.instagramPermalink ?? null) : null;
 
   if (isPostgreSQL()) {
     await getPool().query(
-      `INSERT INTO tasks (id, user_id, title, description, priority, category, due_date, time, recurrence_type, recurrence_config, recurrence_until, source, original_whatsapp_content, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      `INSERT INTO tasks (id, user_id, title, description, priority, category, due_date, time, recurrence_type, recurrence_config, recurrence_until, source, original_whatsapp_content, original_instagram_content, instagram_comment_id, instagram_media_id, instagram_permalink, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
       [
         taskId,
         ctx.userId,
@@ -540,15 +554,19 @@ async function executeCreateTaskAsActive(
         recurrenceConfig,
         recurrenceUntil,
         source,
-        originalContent,
+        originalWhatsapp,
+        originalInstagram,
+        instagramCommentId,
+        instagramMediaId,
+        instagramPermalink,
         now,
         now,
       ],
     );
   } else {
     await getDatabase().run(
-      `INSERT INTO tasks (id, user_id, title, description, priority, category, due_date, time, recurrence_type, recurrence_config, recurrence_until, source, original_whatsapp_content, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tasks (id, user_id, title, description, priority, category, due_date, time, recurrence_type, recurrence_config, recurrence_until, source, original_whatsapp_content, original_instagram_content, instagram_comment_id, instagram_media_id, instagram_permalink, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         taskId,
         ctx.userId,
@@ -562,7 +580,11 @@ async function executeCreateTaskAsActive(
         recurrenceConfig,
         recurrenceUntil,
         source,
-        originalContent,
+        originalWhatsapp,
+        originalInstagram,
+        instagramCommentId,
+        instagramMediaId,
+        instagramPermalink,
         now,
         now,
       ],
@@ -571,13 +593,14 @@ async function executeCreateTaskAsActive(
 
   const savedReminders = await applyRemindersToTask(taskId, ctx.userId, reminders, 'create');
 
-  if (source === 'whatsapp' && hasIO()) {
+  if ((source === 'whatsapp' || source === 'instagram') && hasIO()) {
     getIO().to(`user:${ctx.userId}`).emit('task:created', { id: taskId, source });
   }
 
   recordTaskCreated({
     email: ctx.email ?? '',
-    source: source === 'whatsapp' ? 'whatsapp' : 'agent_web',
+    source:
+      source === 'whatsapp' ? 'whatsapp' : source === 'instagram' ? 'instagram' : 'agent_web',
     taskId,
     priority,
     hasDueDate: !!dueDate,

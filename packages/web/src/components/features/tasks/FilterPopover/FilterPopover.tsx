@@ -80,7 +80,10 @@ const PRIORITY_OPTIONS = [
   },
 ];
 
-const CONNECTED_APP_OPTIONS = [{ value: 'whatsapp', label: 'WhatsApp' }];
+const CONNECTED_APP_OPTIONS = [
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'instagram', label: 'Instagram' },
+];
 
 // ============================================================================
 // COMPONENT
