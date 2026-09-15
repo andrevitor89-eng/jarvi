@@ -6,6 +6,15 @@ const GRAPH_BASE = (process.env.INSTAGRAM_GRAPH_BASE || 'https://graph.facebook.
   '',
 );
 
+export const jarviInstagramHandle = (): string =>
+  (process.env.INSTAGRAM_IG_USERNAME || 'jarvi.life').replace(/^@/, '').trim().toLowerCase();
+
+export const textMentionsJarvi = (text: string): boolean => {
+  const handle = jarviInstagramHandle();
+  if (!handle || !text.trim()) return false;
+  return text.toLowerCase().includes(`@${handle}`);
+};
+
 export const isInstagramWebhookConfigured = (): boolean =>
   Boolean(process.env.INSTAGRAM_APP_SECRET?.trim() && process.env.INSTAGRAM_VERIFY_TOKEN?.trim());
 

@@ -138,6 +138,41 @@ interface AppsListProps {
 }
 
 function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
+  const { token } = useAuth();
+  const [linkedApps, setLinkedApps] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const [whatsappRes, instagramRes] = await Promise.all([
+          fetch(`${API_URL}/api/users/whatsapp-link`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/api/users/instagram-link`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        const whatsappData = await parseApiPayload(whatsappRes);
+        const instagramData = await parseApiPayload(instagramRes);
+        if (cancelled) return;
+        setLinkedApps({
+          whatsapp: Boolean(whatsappData.linked),
+          instagram: Boolean(instagramData.linked),
+        });
+      } catch {
+        // keep default "Conectar" labels
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   return (
     <>
       {!hideHeader && (
@@ -148,8 +183,11 @@ function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
       )}
 
       <ul className={styles.integrationList}>
-        {APPS.map((app) => (
-          <li key={app.id} className={styles.integrationRow}>
+        {APPS.map((app) => {
+          const linked = Boolean(linkedApps[app.id]);
+          const actionLabel = linked ? 'Gerenciar' : 'Conectar';
+          return (
+            <li key={app.id} className={styles.integrationRow}>
             <div className={styles.integrationInfo}>
               <div className={styles.iconContainer}>
                 <img
@@ -173,15 +211,16 @@ function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
                 onClick={() => onConnect(app.id)}
                 aria-label={
                   app.available
-                    ? `Conectar ${app.name}`
+                    ? `${actionLabel} ${app.name}`
                     : `${app.name} ainda não está disponível`
                 }
               >
-                Conectar
+                {app.available ? actionLabel : 'Conectar'}
               </Button>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </>
   );

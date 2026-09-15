@@ -5,6 +5,7 @@
 import { Request, Response } from 'express';
 import {
   isInstagramWebhookConfigured,
+  textMentionsJarvi,
   verifyInstagramSignature,
 } from '../services/instagramService';
 import {
@@ -85,6 +86,9 @@ const collectEvents = (body: unknown): InstagramInboundEvent[] => {
       const senderIgsid = String(value.from?.id || '').trim();
       const senderUsername = value.from?.username ? String(value.from.username) : null;
       const text = String(value.text || '').trim();
+      // `comments` fires for every comment on our media. Only keep ones that tag us.
+      // `mentions` is already "someone tagged @jarvi.life".
+      if (field === 'comments' && !textMentionsJarvi(text)) continue;
       if (!commentId && !mediaId) continue;
       events.push({
         kind: 'mention',

@@ -95,6 +95,7 @@ Para produção:
 | `INSTAGRAM_VERIFY_TOKEN` | Token que você cadastra no dashboard da Meta para o GET `hub.verify_token` | `jarvi-ig-verify` |
 | `INSTAGRAM_PAGE_TOKEN` | Page/user token da `@jarvi.life` (enviar DM e Mentions API) | `EAA...` |
 | `INSTAGRAM_IG_USER_ID` | ID da conta Professional `@jarvi.life` | `17841...` |
+| `INSTAGRAM_IG_USERNAME` | Handle da conta (filtra webhook `comments`). Padrão `jarvi.life` | `jarvi.life` |
 
 ## 💳 Stripe - Configuração de Pagamentos
 
