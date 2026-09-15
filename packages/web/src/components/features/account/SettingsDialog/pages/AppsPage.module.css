@@ -265,6 +265,16 @@
   margin: 0;
 }
 
+.ligaCode {
+  font-family: var(--typography-heading-lg-font-family);
+  font-size: var(--typography-heading-lg-font-size);
+  font-weight: var(--typography-heading-lg-font-weight);
+  line-height: var(--typography-heading-lg-line-height);
+  letter-spacing: 0.08em;
+  color: var(--semantic-content-primary);
+  margin: 0 0 var(--sizes-2) 0;
+}
+
 .connectedActions {
   margin-left: auto;
 }

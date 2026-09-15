@@ -506,6 +506,8 @@ export const TaskItem = memo(TaskItemComponent, (prevProps, nextProps) => {
     prevProps.task.category !== nextProps.task.category ||
     prevProps.task.priority !== nextProps.task.priority ||
     prevProps.task.original_whatsapp_content !== nextProps.task.original_whatsapp_content ||
+    prevProps.task.original_instagram_content !== nextProps.task.original_instagram_content ||
+    prevProps.task.source !== nextProps.task.source ||
     prevProps.task.recurrence_type !== nextProps.task.recurrence_type ||
     prevProps.task.recurrence_config !== nextProps.task.recurrence_config ||
     prevProps.task.updated_at !== nextProps.task.updated_at;

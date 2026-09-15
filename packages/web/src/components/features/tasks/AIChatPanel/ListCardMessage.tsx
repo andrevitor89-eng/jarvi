@@ -1,4 +1,4 @@
-import { FunnelSimple, Fire, Hash, WhatsappLogo, Prohibit } from '@phosphor-icons/react';
+import { FunnelSimple, Fire, Hash, WhatsappLogo, InstagramLogo, Prohibit } from '@phosphor-icons/react';
 import { Chip } from '../../../ui';
 import type { ToolCallData } from '../../../../hooks/useChatStream';
 import styles from './AIChatPanel.module.css';
@@ -88,6 +88,14 @@ export function ListCardMessage({ toolCall, onListClick }: ListCardMessageProps)
             <Chip
               label="WhatsApp"
               icon={<WhatsappLogo weight="regular" />}
+              size="medium"
+              active
+            />
+          )}
+          {connectedApp === 'instagram' && (
+            <Chip
+              label="Instagram"
+              icon={<InstagramLogo weight="regular" />}
               size="medium"
               active
             />

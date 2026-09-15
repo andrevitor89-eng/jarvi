@@ -4,6 +4,7 @@ import { PendingTask } from '../../../../hooks/usePendingTasks';
 import styles from './PendingTaskCard.module.css';
 import whatsappIcon from '../../../../assets/icons/whatsapp.svg';
 import gmailIcon from '../../../../assets/icons/gmail.svg';
+import instagramIcon from '../../../../assets/icons/instagram.svg';
 
 interface PendingTaskCardProps {
   task: PendingTask;
@@ -25,6 +26,7 @@ const formatDateShort = (value: string | null): string | null => {
 
 const getAppSource = (source: string): { name: string; icon: string } | null => {
   if (source === 'gmail') return { name: 'Gmail', icon: gmailIcon };
+  if (source === 'instagram') return { name: 'Instagram', icon: instagramIcon };
   if (source === 'whatsapp') return { name: 'WhatsApp', icon: whatsappIcon };
   return null;
 };

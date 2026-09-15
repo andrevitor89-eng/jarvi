@@ -784,7 +784,10 @@ export function Tasks() {
 
       // Apply connected app filter from list
       if (selectedListObj.connected_app === 'whatsapp') {
-        result = result.filter((t) => !!t.original_whatsapp_content);
+        result = result.filter((t) => t.source === 'whatsapp' || !!t.original_whatsapp_content);
+      }
+      if (selectedListObj.connected_app === 'instagram') {
+        result = result.filter((t) => t.source === 'instagram' || !!t.original_instagram_content);
       }
 
       // Apply no-category filter from list
@@ -808,7 +811,10 @@ export function Tasks() {
       result = result.filter((t) => !!t.category && activeFilters.category.includes(t.category));
     }
     if (activeFilters.connectedApp === 'whatsapp') {
-      result = result.filter((t) => !!t.original_whatsapp_content);
+      result = result.filter((t) => t.source === 'whatsapp' || !!t.original_whatsapp_content);
+    }
+    if (activeFilters.connectedApp === 'instagram') {
+      result = result.filter((t) => t.source === 'instagram' || !!t.original_instagram_content);
     }
     if (!activeFilters.showCompleted) {
       result = result.filter((t) => !t.completed);

@@ -2,7 +2,7 @@
  * AppsPage - SettingsDialog
  *
  * Apps tab: integrations list + per-app connection sub-pages.
- * WhatsApp is available; all other apps remain disabled.
+ * WhatsApp and Instagram are available; remaining apps stay disabled.
  *
  * Figma: https://figma.com/design/TM2wS5y3DkyW9bvfP7xzHK/JarviDS-App
  * Nodes: 40001780-29397 (list), 40001302-3829 / 40001305-4219 / 40001305-4296 (WA flow)
@@ -34,6 +34,13 @@ const APPS: AppDefinition[] = [
     name: 'Whatsapp',
     description: 'Interaja com a Jarvi no seu whatsapp.',
     icon: '/icons/apps/whatsapp.svg',
+    available: true,
+  },
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    description: 'Mande um Direct ou marque @jarvi.life para criar tarefas.',
+    icon: '/icons/apps/instagram.svg',
     available: true,
   },
   {
@@ -95,13 +102,16 @@ const parseApiPayload = async (response: Response): Promise<Record<string, unkno
 // ROOT: VIEW CONTROLLER
 // ============================================================================
 
-type AppsView = 'list' | 'whatsapp' | 'gmail';
+type AppsView = 'list' | 'whatsapp' | 'instagram' | 'gmail';
 
 export function AppsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const [view, setView] = useState<AppsView>('list');
 
   if (view === 'whatsapp') {
     return <WhatsAppConnectPage onBack={() => setView('list')} />;
+  }
+  if (view === 'instagram') {
+    return <InstagramConnectPage onBack={() => setView('list')} />;
   }
   if (view === 'gmail') {
     return <GmailConnectPage onBack={() => setView('list')} />;
@@ -111,6 +121,7 @@ export function AppsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) 
       hideHeader={hideHeader}
       onConnect={(appId) => {
         if (appId === 'whatsapp') setView('whatsapp');
+        else if (appId === 'instagram') setView('instagram');
         else if (appId === 'gmail') setView('gmail');
       }}
     />
@@ -127,6 +138,41 @@ interface AppsListProps {
 }
 
 function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
+  const { token } = useAuth();
+  const [linkedApps, setLinkedApps] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const [whatsappRes, instagramRes] = await Promise.all([
+          fetch(`${API_URL}/api/users/whatsapp-link`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/api/users/instagram-link`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        const whatsappData = await parseApiPayload(whatsappRes);
+        const instagramData = await parseApiPayload(instagramRes);
+        if (cancelled) return;
+        setLinkedApps({
+          whatsapp: Boolean(whatsappData.linked),
+          instagram: Boolean(instagramData.linked),
+        });
+      } catch {
+        // keep default "Conectar" labels
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   return (
     <>
       {!hideHeader && (
@@ -137,8 +183,11 @@ function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
       )}
 
       <ul className={styles.integrationList}>
-        {APPS.map((app) => (
-          <li key={app.id} className={styles.integrationRow}>
+        {APPS.map((app) => {
+          const linked = Boolean(linkedApps[app.id]);
+          const actionLabel = linked ? 'Gerenciar' : 'Conectar';
+          return (
+            <li key={app.id} className={styles.integrationRow}>
             <div className={styles.integrationInfo}>
               <div className={styles.iconContainer}>
                 <img
@@ -162,15 +211,16 @@ function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
                 onClick={() => onConnect(app.id)}
                 aria-label={
                   app.available
-                    ? `Conectar ${app.name}`
+                    ? `${actionLabel} ${app.name}`
                     : `${app.name} ainda não está disponível`
                 }
               >
-                Conectar
+                {app.available ? actionLabel : 'Conectar'}
               </Button>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </>
   );
@@ -487,6 +537,290 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
                 onClick={handleUnlink}
               >
                 Desvincular número
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// INSTAGRAM CONNECTION SUB-PAGE
+// ============================================================================
+
+type InstagramState = 'initial' | 'awaitingCode' | 'connected';
+
+interface InstagramConnectPageProps {
+  onBack: () => void;
+}
+
+function InstagramConnectPage({ onBack }: InstagramConnectPageProps) {
+  const { token } = useAuth();
+
+  const [instagramState, setInstagramState] = useState<InstagramState>('initial');
+  const [linkedUsername, setLinkedUsername] = useState<string | null>(null);
+  const [linkCodeDisplay, setLinkCodeDisplay] = useState<string | null>(null);
+
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const clearFeedback = () => {
+    setError('');
+    setSuccessMsg('');
+    setCopySuccess(false);
+  };
+
+  const applyStatus = (data: Record<string, unknown>) => {
+    const username =
+      typeof data.username === 'string' && data.username.trim() ? data.username.trim() : null;
+    const display =
+      typeof data.linkCodeDisplay === 'string' && data.linkCodeDisplay.trim()
+        ? data.linkCodeDisplay.trim()
+        : null;
+
+    setLinkedUsername(username);
+
+    if (data.linked) {
+      setInstagramState('connected');
+      setLinkCodeDisplay(null);
+      return;
+    }
+
+    if (data.awaitingCode && display) {
+      setInstagramState('awaitingCode');
+      setLinkCodeDisplay(display);
+      return;
+    }
+
+    setInstagramState('initial');
+    setLinkCodeDisplay(null);
+  };
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setStatusLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/api/users/instagram-link`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await parseApiPayload(res);
+        if (!res.ok || cancelled) return;
+        applyStatus(data);
+      } finally {
+        if (!cancelled) setStatusLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token || instagramState !== 'awaitingCode') return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/users/instagram-link`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await parseApiPayload(res);
+        if (!res.ok || cancelled) return;
+        if (data.linked) {
+          applyStatus(data);
+          setSuccessMsg('Instagram vinculado com sucesso.');
+        }
+      } catch {
+        // keep waiting; the next poll retries
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void poll();
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [token, instagramState]);
+
+  const handleRequestCode = async () => {
+    clearFeedback();
+    setRequestLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/users/instagram-link/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await parseApiPayload(res);
+      if (!res.ok) throw new Error(String(data.error || 'Erro ao gerar código'));
+
+      const display =
+        typeof data.linkCodeDisplay === 'string' && data.linkCodeDisplay.trim()
+          ? data.linkCodeDisplay.trim()
+          : null;
+      setLinkCodeDisplay(display);
+      setInstagramState('awaitingCode');
+      setSuccessMsg(String(data.message || 'Mande este código no Direct da @jarvi.life.'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao gerar código');
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!linkCodeDisplay) return;
+    try {
+      await navigator.clipboard.writeText(linkCodeDisplay);
+      setCopySuccess(true);
+      setError('');
+    } catch {
+      setCopySuccess(false);
+      setError('Não foi possível copiar o código.');
+    }
+  };
+
+  const handleUnlink = async () => {
+    clearFeedback();
+    setUnlinkLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/users/instagram-link`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await parseApiPayload(res);
+      if (!res.ok) throw new Error(String(data.error || 'Erro ao desvincular Instagram'));
+
+      setSuccessMsg(String(data.message || 'Vinculação do Instagram removida.'));
+      setLinkedUsername(null);
+      setLinkCodeDisplay(null);
+      setInstagramState('initial');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao desvincular Instagram');
+    } finally {
+      setUnlinkLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.subPageWrapper}>
+      <button type="button" className={styles.backLink} onClick={onBack}>
+        <ArrowLeft size={16} weight="regular" />
+        Apps
+      </button>
+
+      <div className={styles.subPageAppHeader}>
+        <div className={styles.iconContainer}>
+          <img
+            src="/icons/apps/instagram.svg"
+            alt="Instagram"
+            className={styles.appIcon}
+            draggable={false}
+          />
+        </div>
+        <h1 className={styles.subPageAppName}>Instagram</h1>
+      </div>
+
+      <p className={styles.pageSubtitle}>
+        Ligue sua conta para criar tarefas pelo Direct ou marcando @jarvi.life em um comentário.
+      </p>
+
+      {statusLoading && <p className={styles.pageSubtitle}>Carregando...</p>}
+      {error && <p className={styles.feedbackError}>{error}</p>}
+      {successMsg && <p className={styles.feedbackSuccess}>{successMsg}</p>}
+
+      {instagramState === 'initial' && !statusLoading && (
+        <div className={styles.formSection}>
+          <Button
+            type="button"
+            variant="primary"
+            loading={requestLoading}
+            disabled={requestLoading}
+            onClick={() => {
+              void handleRequestCode();
+            }}
+          >
+            Gerar código
+          </Button>
+          <p className={styles.helperText}>
+            Depois mande o código no Direct da @jarvi.life. Expira em 15 minutos.
+          </p>
+        </div>
+      )}
+
+      {instagramState === 'awaitingCode' && (
+        <div className={styles.formSection}>
+          <div>
+            <p className={styles.fieldLabel}>Código para o Direct</p>
+            <p className={styles.ligaCode}>{linkCodeDisplay || 'LIGA ······'}</p>
+            <p className={styles.helperText}>
+              Mande exatamente este texto no Direct da @jarvi.life. Esta tela atualiza sozinha
+              quando o vínculo completar.
+            </p>
+          </div>
+          <div className={styles.inputRow}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                void handleCopyCode();
+              }}
+              disabled={!linkCodeDisplay}
+            >
+              {copySuccess ? 'Copiado' : 'Copiar código'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              loading={requestLoading}
+              disabled={requestLoading}
+              onClick={() => {
+                void handleRequestCode();
+              }}
+            >
+              Gerar outro
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {instagramState === 'connected' && (
+        <div className={styles.formSection}>
+          <div className={styles.connectedRow}>
+            <span className={styles.connectedBadge}>Conectado</span>
+            <p className={styles.connectedPhone}>
+              {linkedUsername ? `@${linkedUsername.replace(/^@/, '')}` : 'Instagram'}
+            </p>
+            <div className={styles.connectedActions}>
+              <Button
+                variant="secondary"
+                loading={unlinkLoading}
+                disabled={unlinkLoading}
+                onClick={() => {
+                  void handleUnlink();
+                }}
+              >
+                Desvincular
               </Button>
             </div>
           </div>

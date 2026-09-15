@@ -411,6 +411,19 @@ export function buildWebExtras(_ctx: AgentContext): string {
   ]);
 }
 
+export function buildInstagramExtras(ctx: AgentContext): string {
+  return joinNonEmpty([
+    'O Instagram é canal de captura rápida, como o WhatsApp.',
+    'Transforme o recado (Direct ou comentário marcando a Jarvi) em TAREFA. Na dúvida, CRIE.',
+    '- O comentário/texto é a INTENÇÃO. A legenda ou o link do post é o CONTEXTO.',
+    '- Se a mensagem pedir a "ideia 3" e a legenda listar as ideias, use a ideia 3 no título. Se a legenda não listar, crie uma tarefa honesta ("Rever ideia 3 do post de jardim") — NÃO invente produto, adubo ou detalhe que não estiver no texto.',
+    '- Tarefas vão direto para a lista ativa. Não peça confirmação antes de create_task.',
+    '- Ao criar, responda em texto simples (sem markdown de WhatsApp): Salvo! Tarefa [título] criada.',
+    '- Nunca diga que vai responder no comentário público. A confirmação é só neste Direct.',
+    ctx.instagramPermalink ? `- Permalink do post: ${ctx.instagramPermalink}` : null,
+  ]);
+}
+
 // ---------------------------------------------------------------------------
 // Public builders
 // ---------------------------------------------------------------------------

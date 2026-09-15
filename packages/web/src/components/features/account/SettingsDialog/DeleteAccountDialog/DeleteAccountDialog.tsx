@@ -83,7 +83,7 @@ export function DeleteAccountDialog({ isOpen, onClose, onDeleted }: DeleteAccoun
           <ul className={styles.list}>
             <li>Todas as suas tarefas, notas, categorias e listas serão apagadas.</li>
             <li>Sua assinatura no Stripe será cancelada imediatamente.</li>
-            <li>Sua conexão com WhatsApp e Google será removida.</li>
+            <li>Sua conexão com WhatsApp, Instagram e Google será removida.</li>
             <li>Você perderá acesso ao Jarvi com este email.</li>
           </ul>
           <p className={styles.descriptionMuted}>

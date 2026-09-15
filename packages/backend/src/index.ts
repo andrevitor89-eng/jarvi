@@ -17,12 +17,14 @@ import webhookRoutes from './routes/webhookRoutes';
 import userRoutes from './routes/userRoutes';
 import earlyAccessRoutes from './routes/earlyAccessRoutes';
 import whatsappRoutes from './routes/whatsappRoutes';
+import instagramRoutes from './routes/instagramRoutes';
 import voiceRoutes from './routes/voiceRoutes';
 import pendingTaskRoutes from './routes/pendingTaskRoutes';
 import aiRoutes from './routes/aiRoutes';
 import gmailRoutes from './routes/gmailRoutes';
 import { CollaborationService } from './services/collaborationService';
 import { initializeWhatsappWorker } from './queues/whatsappQueue';
+import { initializeInstagramWorker } from './queues/instagramQueue';
 import { initializeGmailWorker } from './queues/gmailQueue';
 import { startRecurrenceScheduler } from './services/recurrenceService';
 import { startReminderScheduler } from './services/reminderService';
@@ -128,6 +130,7 @@ app.use(
   webhookRoutes
 );
 app.use('/api/webhooks/whatsapp', express.urlencoded({ extended: false }), whatsappRoutes);
+app.use('/api/webhooks/instagram', instagramRoutes);
 app.use('/api/webhooks/voice', express.urlencoded({ extended: false }), voiceRoutes);
 
 app.use(express.json({ limit: '75mb' }));
@@ -211,6 +214,7 @@ initializeDatabase()
     // Initialize collaboration service
     const collaborationService = new CollaborationService(server);
     initializeWhatsappWorker();
+    initializeInstagramWorker();
     initializeGmailWorker();
     startRecurrenceScheduler();
     startReminderScheduler();
@@ -219,6 +223,7 @@ initializeDatabase()
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🤝 Collaboration service initialized`);
       console.log('📱 WhatsApp worker initialized');
+      console.log('📸 Instagram worker initialized');
       console.log('📧 Gmail worker initialized');
       console.log('🔁 Recurrence scheduler initialized');
       console.log('🔔 Reminder scheduler initialized');
