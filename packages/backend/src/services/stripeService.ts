@@ -176,10 +176,6 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   trialExtended: boolean;
   planType: PlanType;
 }> {
-  if (!stripe) {
-    throw new Error('Stripe is not configured');
-  }
-
   const user = await getUserById(userId);
   if (!user) {
     return { status: 'none', trialEndsAt: null, currentPeriodEnd: null, trialExtended: false, planType: null };
@@ -227,6 +223,10 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     }
 
     return { status: 'none', trialEndsAt: null, currentPeriodEnd: null, trialExtended, planType: null };
+  }
+
+  if (!stripe) {
+    throw new Error('Stripe is not configured');
   }
 
   const subscription = await stripe.subscriptions.retrieve(
