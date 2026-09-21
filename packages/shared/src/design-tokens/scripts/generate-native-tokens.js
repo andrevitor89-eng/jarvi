@@ -113,7 +113,7 @@ function generateNativeTokens(tokens) {
    ======================================== */
 
 export type ThemeMode = 'light' | 'dark';
-export type Theme = typeof lightTheme;
+export type Theme = typeof lightTheme | typeof darkTheme;
 export type ColorKey = keyof typeof colors;
 export type SpacingKey = keyof typeof spacing;
 export type FontFamilyKey = keyof typeof fontFamily;

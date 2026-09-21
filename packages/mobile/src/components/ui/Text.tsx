@@ -5,28 +5,82 @@
  */
 
 import React from 'react';
-import { Text as RNText, TouchableOpacity } from 'react-native';
-import {
-  Text as BaseText,
-  Heading as BaseHeading,
-  Title as BaseTitle,
-  Subtitle as BaseSubtitle,
-  Body as BaseBody,
-  Caption as BaseCaption,
-  Overline as BaseOverline,
-  getTextStyles,
-  getTextThemeStyles,
-  type TextProps as BaseTextProps,
-} from '@jarvi/shared';
-import { useThemeMobile } from '../../hooks/useTheme';
+import { Text as RNText, TextStyle, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '@jarvi/shared/src/design-tokens/platforms/native';
 
 // ============================================================================
 // TIPOS
 // ============================================================================
 
-export interface TextProps extends BaseTextProps {
+export type TextVariant =
+  | 'heading'
+  | 'title'
+  | 'subtitle'
+  | 'body'
+  | 'caption'
+  | 'overline';
+export type TextSize =
+  | 'xs'
+  | 'sm'
+  | 'base'
+  | 'lg'
+  | 'xl'
+  | '2xl'
+  | '3xl'
+  | '4xl'
+  | '5xl'
+  | '6xl';
+export type TextWeight =
+  | 'thin'
+  | 'extralight'
+  | 'light'
+  | 'normal'
+  | 'medium'
+  | 'semibold'
+  | 'bold'
+  | 'extrabold'
+  | 'black';
+export type TextColor =
+  | 'primary'
+  | 'secondary'
+  | 'tertiary'
+  | 'accent'
+  | 'disabled'
+  | 'positive'
+  | 'negative'
+  | 'warning'
+  | 'info';
+
+export interface TextProps {
+  children?: React.ReactNode;
+  variant?: TextVariant;
+  size?: TextSize;
+  weight?: TextWeight;
+  color?: TextColor;
+  align?: 'left' | 'center' | 'right' | 'justify';
+  transform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+  decoration?: 'none' | 'underline' | 'line-through';
+  numberOfLines?: number;
+  ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip';
+  selectable?: boolean;
+  className?: string;
+  style?: TextStyle;
+  testID?: string;
   onPress?: () => void;
 }
+
+const COLOR_TOKENS: Record<TextColor, keyof Theme> = {
+  primary: 'contentContent-primary',
+  secondary: 'contentContent-secondary',
+  tertiary: 'contentContent-tertiary',
+  accent: 'contentContent-accent',
+  disabled: 'contentContent-disabled',
+  positive: 'contentContent-positive',
+  negative: 'contentContent-negative',
+  warning: 'contentContent-warning',
+  info: 'contentContent-info',
+};
 
 // ============================================================================
 // COMPONENTE
@@ -50,21 +104,17 @@ export function Text({
   testID,
   ...props
 }: TextProps) {
-  const { isDark } = useThemeMobile();
-
-  // Obter estilos inline
-  const baseStyles = getTextStyles(variant, size, weight, color, align, transform, decoration);
-  const themeStyles = getTextThemeStyles(color, isDark);
-  const finalStyles = { ...baseStyles, ...themeStyles, ...style };
+  const { theme } = useTheme();
 
   // Obter estilos do texto
-  const textStyles = {
+  const textStyles: TextStyle = {
     fontSize: size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'base' ? 16 : size === 'lg' ? 18 : size === 'xl' ? 20 : size === '2xl' ? 24 : size === '3xl' ? 30 : size === '4xl' ? 36 : size === '5xl' ? 48 : 60,
     fontWeight: weight === 'thin' ? '100' : weight === 'extralight' ? '200' : weight === 'light' ? '300' : weight === 'normal' ? '400' : weight === 'medium' ? '500' : weight === 'semibold' ? '600' : weight === 'bold' ? '700' : weight === 'extrabold' ? '800' : '900',
-    textAlign: align === 'left' ? 'left' : align === 'center' ? 'center' : align === 'right' ? 'right' : 'justify',
-    textTransform: transform === 'none' ? 'none' : transform === 'uppercase' ? 'uppercase' : transform === 'lowercase' ? 'lowercase' : 'capitalize',
-    textDecorationLine: decoration === 'none' ? 'none' : decoration === 'underline' ? 'underline' : 'line-through',
-    ...finalStyles,
+    textAlign: align,
+    textTransform: transform,
+    textDecorationLine: decoration,
+    color: theme[COLOR_TOKENS[color]],
+    ...style,
   };
 
   // Se onPress estiver definido, usar TouchableOpacity

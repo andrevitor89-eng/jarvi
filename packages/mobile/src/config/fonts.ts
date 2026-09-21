@@ -44,7 +44,7 @@ export const fontConfig = {
       bold: '700',
     },
   },
-};
+} as const;
 
 // ============================================================================
 // TAMANHOS DE FONTE
@@ -96,20 +96,32 @@ export const letterSpacing = {
 // UTILITÁRIOS
 // ============================================================================
 
+export type FontWeight = keyof typeof fontConfig['sans']['fontWeight'];
+type FontWeightValue = typeof fontConfig['sans']['fontWeight'][FontWeight];
+
+/**
+ * Resolve o peso para a família pedida. `mono` e `display` só definem parte da
+ * escala, então caem no peso equivalente de `sans` quando não têm o pedido.
+ */
+function getFontWeight(family: keyof typeof fontConfig, weight: FontWeight): FontWeightValue {
+  const weights = fontConfig[family].fontWeight as Partial<Record<FontWeight, FontWeightValue>>;
+  return weights[weight] ?? fontConfig.sans.fontWeight[weight];
+}
+
 /**
  * Função para obter estilo de fonte
  */
 export function getFontStyle(
   family: keyof typeof fontConfig = 'sans',
   size: keyof typeof fontSize = 'base',
-  weight: keyof typeof fontConfig['sans']['fontWeight'] = 'normal',
+  weight: FontWeight = 'normal',
   lineHeightValue: keyof typeof lineHeight = 'normal',
   letterSpacingValue: keyof typeof letterSpacing = 'normal'
 ) {
   return {
     fontFamily: fontConfig[family].fontFamily,
     fontSize: fontSize[size],
-    fontWeight: fontConfig[family].fontWeight[weight],
+    fontWeight: getFontWeight(family, weight),
     lineHeight: fontSize[size] * lineHeight[lineHeightValue],
     letterSpacing: letterSpacing[letterSpacingValue],
   };
@@ -120,13 +132,13 @@ export function getFontStyle(
  */
 export function getTextStyle(
   size: keyof typeof fontSize = 'base',
-  weight: keyof typeof fontConfig['sans']['fontWeight'] = 'normal',
+  weight: FontWeight = 'normal',
   lineHeightValue: keyof typeof lineHeight = 'normal'
 ) {
   return {
     fontFamily: fontConfig.sans.fontFamily,
     fontSize: fontSize[size],
-    fontWeight: fontConfig.sans.fontWeight[weight],
+    fontWeight: getFontWeight('sans', weight),
     lineHeight: fontSize[size] * lineHeight[lineHeightValue],
   };
 }
@@ -141,7 +153,7 @@ export function getTitleStyle(
   return {
     fontFamily: fontConfig.display.fontFamily,
     fontSize: fontSize[size],
-    fontWeight: fontConfig.display.fontWeight[weight],
+    fontWeight: getFontWeight('display', weight),
     lineHeight: fontSize[size] * lineHeight.tight,
   };
 }
@@ -156,7 +168,7 @@ export function getCodeStyle(
   return {
     fontFamily: fontConfig.mono.fontFamily,
     fontSize: fontSize[size],
-    fontWeight: fontConfig.mono.fontWeight[weight],
+    fontWeight: getFontWeight('mono', weight),
     lineHeight: fontSize[size] * lineHeight.normal,
   };
 }

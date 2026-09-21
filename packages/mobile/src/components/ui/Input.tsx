@@ -88,14 +88,14 @@ export const Input = forwardRef<RNTextInput, InputProps>(({
   const inputStyle: TextStyle = StyleSheet.flatten([
     styles.input,
     {
-      backgroundColor: theme.semanticControlControlBg,
+      backgroundColor: theme['controlControl-bg'],
       borderColor: error 
-        ? theme.semanticContentContentError 
-        : theme.semanticControlControlBorderDefault,
-      color: theme.semanticContentContentPrimary,
+        ? theme['contentContent-negative'] 
+        : theme.bordersBorder,
+      color: theme['contentContent-primary'],
     },
     disabled && {
-      backgroundColor: theme.semanticSurfaceSurfaceSecondary,
+      backgroundColor: theme['surfaceSurface-secondary'],
       opacity: 0.6,
     },
     style,
@@ -104,7 +104,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(({
   const labelStyle: TextStyle = StyleSheet.flatten([
     styles.label,
     {
-      color: theme.semanticContentContentSecondary,
+      color: theme['contentContent-secondary'],
     },
   ]);
 
@@ -112,8 +112,8 @@ export const Input = forwardRef<RNTextInput, InputProps>(({
     styles.helper,
     {
       color: error 
-        ? theme.semanticContentContentError 
-        : theme.semanticContentContentTertiary,
+        ? theme['contentContent-negative'] 
+        : theme['contentContent-tertiary'],
     },
   ]);
 
@@ -130,7 +130,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(({
         ref={ref}
         style={inputStyle}
         placeholder={placeholder}
-        placeholderTextColor={theme.semanticContentContentTertiary}
+        placeholderTextColor={theme['contentContent-tertiary']}
         value={value}
         defaultValue={defaultValue}
         editable={!disabled}

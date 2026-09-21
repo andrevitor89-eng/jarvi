@@ -5,49 +5,77 @@
  */
 
 import React from 'react';
-import { View, Text } from 'react-native';
-import {
-  Icon as BaseIcon,
-  PrimaryIcon as BasePrimaryIcon,
-  SecondaryIcon as BaseSecondaryIcon,
-  SuccessIcon as BaseSuccessIcon,
-  WarningIcon as BaseWarningIcon,
-  ErrorIcon as BaseErrorIcon,
-  InfoIcon as BaseInfoIcon,
-  UserIcon as BaseUserIcon,
-  SettingsIcon as BaseSettingsIcon,
-  NotificationIcon as BaseNotificationIcon,
-  SearchIcon as BaseSearchIcon,
-  MenuIcon as BaseMenuIcon,
-  CloseIcon as BaseCloseIcon,
-  ArrowRightIcon as BaseArrowRightIcon,
-  ArrowLeftIcon as BaseArrowLeftIcon,
-  ArrowUpIcon as BaseArrowUpIcon,
-  ArrowDownIcon as BaseArrowDownIcon,
-  CheckIcon as BaseCheckIcon,
-  PlusIcon as BasePlusIcon,
-  MinusIcon as BaseMinusIcon,
-  EditIcon as BaseEditIcon,
-  DeleteIcon as BaseDeleteIcon,
-  SaveIcon as BaseSaveIcon,
-  HomeIcon as BaseHomeIcon,
-  TasksIcon as BaseTasksIcon,
-  NotesIcon as BaseNotesIcon,
-  HabitsIcon as BaseHabitsIcon,
-  FinancesIcon as BaseFinancesIcon,
-  getIconStyles,
-  getIconThemeStyles,
-  type IconProps as BaseIconProps,
-} from '@jarvi/shared';
-import { useThemeMobile } from '../../hooks/useTheme';
+import { View, Text, TextStyle } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '@jarvi/shared/src/design-tokens/platforms/native';
 
 // ============================================================================
 // TIPOS
 // ============================================================================
 
-export interface IconProps extends BaseIconProps {
+export type IconName =
+  | 'user'
+  | 'settings'
+  | 'notification'
+  | 'search'
+  | 'menu'
+  | 'close'
+  | 'arrow-right'
+  | 'arrow-left'
+  | 'arrow-up'
+  | 'arrow-down'
+  | 'check'
+  | 'plus'
+  | 'minus'
+  | 'edit'
+  | 'delete'
+  | 'save'
+  | 'home'
+  | 'tasks'
+  | 'notes'
+  | 'habits'
+  | 'finances';
+
+export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+
+export type IconColor =
+  | 'current'
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info';
+
+export interface IconProps {
+  name: IconName;
+  size?: IconSize;
+  color?: IconColor;
+  weight?: 'thin' | 'light' | 'regular' | 'bold' | 'fill';
+  className?: string;
+  style?: TextStyle;
+  testID?: string;
   onPress?: () => void;
 }
+
+const SIZE_PX: Record<IconSize, number> = {
+  xs: 12,
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
+  '2xl': 40,
+};
+
+const COLOR_TOKENS: Record<IconColor, keyof Theme> = {
+  current: 'contentContent-primary',
+  primary: 'contentContent-primary',
+  secondary: 'contentContent-secondary',
+  success: 'contentContent-positive',
+  warning: 'contentContent-warning',
+  error: 'contentContent-negative',
+  info: 'contentContent-info',
+};
 
 // ============================================================================
 // COMPONENTE
@@ -64,25 +92,23 @@ export function Icon({
   onPress,
   ...props
 }: IconProps) {
-  const { isDark } = useThemeMobile();
+  const { theme } = useTheme();
 
-  // Obter estilos inline
-  const baseStyles = getIconStyles(size, color);
-  const themeStyles = getIconThemeStyles(color, isDark);
-  const finalStyles = { ...baseStyles, ...themeStyles, ...style };
+  const box = SIZE_PX[size];
 
   // Obter estilos do container
   const containerStyles = {
-    width: finalStyles.width,
-    height: finalStyles.height,
+    width: box,
+    height: box,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   };
 
   // Obter estilos do texto (emoji)
-  const textStyles = {
-    fontSize: size === 'xs' ? 12 : size === 'sm' ? 16 : size === 'md' ? 20 : size === 'lg' ? 24 : size === 'xl' ? 32 : 40,
-    color: finalStyles.color,
+  const textStyles: TextStyle = {
+    fontSize: box,
+    color: theme[COLOR_TOKENS[color]],
+    ...style,
   };
 
   // Renderizar ícone baseado no nome (usando emojis para simplicidade)

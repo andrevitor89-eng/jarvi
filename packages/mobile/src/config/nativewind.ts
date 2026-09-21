@@ -5,36 +5,33 @@
  * seguindo o design system.
  */
 
-import { create } from 'nativewind';
-
-// ============================================================================
-// CONFIGURAÇÃO DO NATIVEWIND
-// ============================================================================
-
-const { styled } = create();
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  SafeAreaView,
+} from 'react-native';
 
 // ============================================================================
 // COMPONENTES ESTILIZADOS
 // ============================================================================
 
-export const StyledView = styled('View');
-export const StyledText = styled('Text');
-export const StyledScrollView = styled('ScrollView');
-export const StyledTouchableOpacity = styled('TouchableOpacity');
-export const StyledTextInput = styled('TextInput');
-export const StyledImage = styled('Image');
-export const StyledSafeAreaView = styled('SafeAreaView');
+// NativeWind v4 dropped `create()`/`styled()`: core React Native components
+// accept `className` directly, so these are plain re-exports.
+export const StyledView = View;
+export const StyledText = Text;
+export const StyledScrollView = ScrollView;
+export const StyledTouchableOpacity = TouchableOpacity;
+export const StyledTextInput = TextInput;
+export const StyledImage = Image;
+export const StyledSafeAreaView = SafeAreaView;
 
 // ============================================================================
 // UTILITÁRIOS
 // ============================================================================
-
-/**
- * Função para criar componente estilizado
- */
-export function createStyledComponent(component: any) {
-  return styled(component);
-}
 
 /**
  * Função para obter classes de tema
@@ -161,10 +158,4 @@ export function getThemeStyles(isDark: boolean) {
     },
   };
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default styled;
 

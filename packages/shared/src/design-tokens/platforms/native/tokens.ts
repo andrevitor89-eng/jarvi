@@ -316,7 +316,7 @@ export const darkTheme = {
    ======================================== */
 
 export type ThemeMode = 'light' | 'dark';
-export type Theme = typeof lightTheme;
+export type Theme = typeof lightTheme | typeof darkTheme;
 export type ColorKey = keyof typeof colors;
 export type SpacingKey = keyof typeof spacing;
 export type FontFamilyKey = keyof typeof fontFamily;
@@ -324,7 +324,7 @@ export type FontFamilyKey = keyof typeof fontFamily;
 /**
  * Get theme based on mode
  */
-export function getTheme(mode: ThemeMode): typeof lightTheme | typeof darkTheme {
+export function getTheme(mode: ThemeMode): Theme {
   return mode === 'dark' ? darkTheme : lightTheme;
 }
 

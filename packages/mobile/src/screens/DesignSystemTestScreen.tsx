@@ -15,13 +15,13 @@ import {
   SafeAreaView,
   StyleSheet,
 } from 'react-native';
-import { useThemeMobile, useThemeStylesMobile } from '../hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { getTextStyle, getTitleStyle } from '../config/fonts';
 import { getThemeStyles } from '../config/nativewind';
 
 export function DesignSystemTestScreen() {
-  const { isDark, toggleTheme } = useThemeMobile();
-  const themeStyles = useThemeStylesMobile();
+  const { isDark, toggleTheme } = useTheme();
+  const themeStyles = getThemeStyles(isDark);
   const [inputValue, setInputValue] = useState('');
 
   // Estilos inline para teste

@@ -61,51 +61,54 @@ export function Button({
     },
   };
 
-  // Variant styles
+  // Variant styles.
+  // The secondary/ghost/disabled *Content* tokens still hold unresolved Figma
+  // aliases ("{Semantic.content.content-*}"), so the semantic token they point
+  // at is used directly until the token generator resolves references.
   const variantStyles = {
     primary: {
       container: {
-        backgroundColor: theme.componentButtonPrimaryBgDefault,
-        borderColor: theme.componentButtonPrimaryBorderDefault,
+        backgroundColor: theme['buttonPrimaryBg-default'],
+        borderColor: theme['buttonPrimaryBg-default'],
       },
       text: {
-        color: theme.componentButtonPrimaryContentDefault,
+        color: theme['buttonPrimaryContent-default'],
       },
     },
     secondary: {
       container: {
-        backgroundColor: theme.componentButtonSecondaryBgDefault,
-        borderColor: theme.componentButtonSecondaryBorderDefault,
+        backgroundColor: theme['buttonSecondaryBg-default'],
+        borderColor: theme.bordersBorder,
       },
       text: {
-        color: theme.componentButtonSecondaryContentDefault,
+        color: theme['contentContent-primary'],
       },
     },
     outline: {
       container: {
         backgroundColor: 'transparent',
-        borderColor: theme.componentButtonGhostBorderDefault,
+        borderColor: theme.bordersBorder,
       },
       text: {
-        color: theme.componentButtonGhostContentDefault,
+        color: theme['contentContent-primary'],
       },
     },
     ghost: {
       container: {
-        backgroundColor: theme.componentButtonGhostBgDefault,
+        backgroundColor: theme['buttonGhostBg-default'],
         borderColor: 'transparent',
       },
       text: {
-        color: theme.componentButtonGhostContentDefault,
+        color: theme['contentContent-primary'],
       },
     },
     destructive: {
       container: {
-        backgroundColor: theme.componentButtonDestructiveBgDefault,
-        borderColor: theme.componentButtonDestructiveBorderDefault,
+        backgroundColor: theme['buttonDestructiveBg-default'],
+        borderColor: theme['buttonDestructiveBg-default'],
       },
       text: {
-        color: theme.componentButtonDestructiveContentDefault,
+        color: theme['buttonDestructiveContent-default'],
       },
     },
   };
@@ -120,8 +123,8 @@ export function Button({
     variantStyles[variant].container,
     fullWidth && styles.fullWidth,
     (disabled || loading) && {
-      backgroundColor: theme.componentButtonBgDisabled,
-      borderColor: theme.componentButtonBgDisabled,
+      backgroundColor: theme['buttonBg-disabled'],
+      borderColor: theme['buttonBg-disabled'],
       opacity: 0.6,
     },
     style,
@@ -132,7 +135,7 @@ export function Button({
     { fontSize: sizeStyles[size].fontSize },
     variantStyles[variant].text,
     (disabled || loading) && {
-      color: theme.componentButtonContentDisabled,
+      color: theme['contentContent-disabled'],
     },
     textStyle,
   ]);

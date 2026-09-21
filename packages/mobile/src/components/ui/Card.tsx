@@ -44,8 +44,8 @@ export function Card({
   const cardStyle: ViewStyle = StyleSheet.flatten([
     styles.card,
     {
-      backgroundColor: theme.semanticSurfaceSurfacePrimary,
-      borderColor: theme.semanticBordersBorderPrimary,
+      backgroundColor: theme['surfaceSurface-primary'],
+      borderColor: theme.bordersBorder,
     },
     paddingStyles[padding],
     style,

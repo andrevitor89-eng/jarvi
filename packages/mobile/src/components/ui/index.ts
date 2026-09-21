@@ -14,6 +14,6 @@ export {
   SecondaryButton,
   OutlineButton,
   GhostButton,
-  DangerButton,
+  DestructiveButton,
   type ButtonProps,
 } from './Button';

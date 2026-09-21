@@ -14,13 +14,13 @@ import {
   TextInput,
   SafeAreaView,
 } from 'react-native';
-import { useThemeMobile, useThemeStylesMobile } from '../../hooks/useTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { getTextStyle, getTitleStyle } from '../../config/fonts';
 import { getThemeStyles } from '../../config/nativewind';
 
 export function DesignSystemDemo() {
-  const { isDark, toggleTheme } = useThemeMobile();
-  const themeStyles = useThemeStylesMobile();
+  const { isDark, toggleTheme } = useTheme();
+  const themeStyles = getThemeStyles(isDark);
   const [inputValue, setInputValue] = useState('');
 
   return (
