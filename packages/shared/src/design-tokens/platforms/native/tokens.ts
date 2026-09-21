@@ -316,7 +316,12 @@ export const darkTheme = {
    ======================================== */
 
 export type ThemeMode = 'light' | 'dark';
-export type Theme = typeof lightTheme;
+// `lightTheme`/`darkTheme` are `as const`, so each key's literal value differs
+// between the two objects (e.g. different hex strings). Deriving `Theme` from
+// `typeof lightTheme` alone made `darkTheme` structurally incompatible with it,
+// so widen every value to `string` — callers only rely on the token keys, not
+// their literal color values.
+export type Theme = { [K in keyof typeof lightTheme]: string };
 export type ColorKey = keyof typeof colors;
 export type SpacingKey = keyof typeof spacing;
 export type FontFamilyKey = keyof typeof fontFamily;
@@ -324,7 +329,7 @@ export type FontFamilyKey = keyof typeof fontFamily;
 /**
  * Get theme based on mode
  */
-export function getTheme(mode: ThemeMode): typeof lightTheme | typeof darkTheme {
+export function getTheme(mode: ThemeMode): Theme {
   return mode === 'dark' ? darkTheme : lightTheme;
 }
 
