@@ -176,10 +176,12 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   trialExtended: boolean;
   planType: PlanType;
 }> {
-  if (!stripe) {
-    throw new Error('Stripe is not configured');
-  }
-
+  // Don't bail out just because Stripe isn't configured (e.g. local/dev envs
+  // without STRIPE_SECRET_KEY): users without a real `stripe_subscription_id`
+  // never need the Stripe API below — they're resolved from the internal
+  // trial/dev-shortcut fallback. Only users with a live Stripe subscription
+  // actually require `stripe` to be configured, so that check happens right
+  // before the one call site that needs it.
   const user = await getUserById(userId);
   if (!user) {
     return { status: 'none', trialEndsAt: null, currentPeriodEnd: null, trialExtended: false, planType: null };
@@ -227,6 +229,10 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     }
 
     return { status: 'none', trialEndsAt: null, currentPeriodEnd: null, trialExtended, planType: null };
+  }
+
+  if (!stripe) {
+    throw new Error('Stripe is not configured');
   }
 
   const subscription = await stripe.subscriptions.retrieve(
