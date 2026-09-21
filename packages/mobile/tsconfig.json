@@ -28,5 +28,13 @@
     "**/*.ts",
     "**/*.tsx",
     "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/components/ui",
+    "src/components/design-system",
+    "src/screens/DesignSystemTestScreen.tsx",
+    "src/config/fonts.ts",
+    "src/config/nativewind.ts"
   ]
 }

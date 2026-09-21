@@ -100,7 +100,7 @@ const App = () => {
     return (
       <View style={styles.container}>
         <HomeScreen 
-          userInfo={userInfo} 
+          userInfo={userInfo ?? undefined} 
           onLogout={handleLogout}
           onNavigateToTasks={() => {}}
           onNavigateToNotes={() => {}}
@@ -108,7 +108,7 @@ const App = () => {
           onNavigateToFinances={() => {}}
         />
         <BottomTabs 
-          userInfo={userInfo}
+          userInfo={userInfo ?? undefined}
           onLogout={handleLogout}
         />
       </View>
