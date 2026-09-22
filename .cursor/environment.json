@@ -1,0 +1,20 @@
+{
+  "name": "Jarvi",
+  "install": "bash .cursor/setup/install.sh",
+  "terminals": [
+    {
+      "name": "backend",
+      "command": "npm run dev:backend",
+      "description": "Express + TypeScript API on http://localhost:3001 (SQLite dev DB, auto-migrated). Redis ECONNREFUSED logs are expected and non-blocking."
+    },
+    {
+      "name": "web",
+      "command": "npm run dev:web",
+      "description": "React + Vite web app on http://localhost:3000, proxies /api to the backend."
+    }
+  ],
+  "ports": [
+    { "name": "backend", "port": 3001 },
+    { "name": "web", "port": 3000 }
+  ]
+}
