@@ -26,6 +26,7 @@
 .dropdown {
   display: flex;
   flex-direction: column;
+  z-index: 1000;
   background: var(--semantic-surface-primary);
   border: 1px solid var(--semantic-border-primary);
   border-radius: var(--radius-md);

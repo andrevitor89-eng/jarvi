@@ -170,6 +170,15 @@ export function CategoriesPage({ hideHeader = false }: { hideHeader?: boolean } 
     [sortedCategories, reorderCategories],
   );
 
+  const handleCreateStart = useCallback(() => {
+    setIsCreating(true);
+    setCreateValue('');
+    window.setTimeout(() => {
+      createInputRef.current?.scrollIntoView({ block: 'nearest' });
+      createInputRef.current?.focus();
+    }, 0);
+  }, []);
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
@@ -184,13 +193,7 @@ export function CategoriesPage({ hideHeader = false }: { hideHeader?: boolean } 
             </p>
           </div>
         )}
-        <PrimaryButton
-          onClick={() => {
-            setIsCreating(true);
-            setCreateValue('');
-          }}
-          disabled={isCreating}
-        >
+        <PrimaryButton type="button" onClick={handleCreateStart} disabled={isCreating}>
           Nova Categoria
         </PrimaryButton>
       </div>

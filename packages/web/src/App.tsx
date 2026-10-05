@@ -20,6 +20,7 @@ import { ToastProvider } from './components/ui';
 import { Loading } from './components/ui/Loading';
 import { Layout } from './components/layout';
 import { Login } from './pages/Login';
+import { NotFound } from './pages/NotFound';
 import { TrialExpiredGate } from './components/features/subscription/TrialExpiredGate/TrialExpiredGate';
 
 // Lazy load pages
@@ -108,21 +109,11 @@ function AppSwitch() {
       />
 
       {/* Protected routes */}
+      <Route path="/settings" element={<Navigate to="/tasks?conta=profile" replace />} />
+      <Route path="/" element={<Navigate to="/tasks" replace />} />
       <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
+        path="/calendar"
+        element={<Navigate to="/tasks?view=calendario" replace />}
       />
       <Route
         path="/tasks"
@@ -172,6 +163,7 @@ function AppSwitch() {
           </ProtectedRoute>
         }
       />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

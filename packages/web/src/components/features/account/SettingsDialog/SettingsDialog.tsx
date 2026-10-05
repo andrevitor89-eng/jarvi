@@ -79,24 +79,23 @@ export function SettingsPageContent({
   onClose,
   hideHeader = false,
   onOpenProfileOverlay,
+  onOpenCreateList,
+  initialApp,
 }: {
   page: SettingsPage;
   onClose: () => void;
-  /**
-   * When true, pages that render their own title/header (apps, categories,
-   * filters) omit it — used by the mobile bottom sheet, which shows the title
-   * in its own sticky header instead.
-   */
   hideHeader?: boolean;
   onOpenProfileOverlay?: (overlay: SettingsProfileOverlay) => void;
+  onOpenCreateList?: () => void;
+  initialApp?: 'whatsapp' | 'gmail';
 }) {
   switch (page) {
     case 'profile':    return <ProfilePage onOpenProfileOverlay={onOpenProfileOverlay} />;
     case 'payments':   return <PaymentsPage onClose={onClose} />;
-    case 'apps':       return <AppsPage hideHeader={hideHeader} />;
+    case 'apps':       return <AppsPage hideHeader={hideHeader} initialApp={initialApp} />;
     case 'memory':     return <MemoryPage />;
     case 'categories': return <CategoriesPage hideHeader={hideHeader} />;
-    case 'filters':    return <FiltersPage hideHeader={hideHeader} />;
+    case 'filters':    return <FiltersPage hideHeader={hideHeader} onOpenCreateList={onOpenCreateList} />;
     case 'appearance': return <AppearancePage />;
     default:           return null;
   }
@@ -107,20 +106,21 @@ export function SettingsPageContent({
 // ============================================================================
 
 export interface SettingsDialogProps {
-  /** Whether the dialog is open */
   isOpen: boolean;
-  /** Callback when the dialog should close */
   onClose: () => void;
-  /** Page to show when the dialog opens (defaults to 'profile') */
   initialPage?: SettingsPage;
+  initialApp?: 'whatsapp' | 'gmail';
   onOpenProfileOverlay?: (overlay: SettingsProfileOverlay) => void;
+  onOpenCreateList?: () => void;
 }
 
 export function SettingsDialog({
   isOpen,
   onClose,
   initialPage = 'profile',
+  initialApp,
   onOpenProfileOverlay,
+  onOpenCreateList,
 }: SettingsDialogProps) {
   const [activePage, setActivePage] = useState<SettingsPage>(initialPage);
 
@@ -153,7 +153,7 @@ export function SettingsDialog({
         {/* Sidebar */}
         <aside className={styles.sidebar}>
           <h2 className={styles.sidebarTitle}>Minha Conta</h2>
-          <nav className={styles.sidebarNav}>
+          <nav className={styles.sidebarNav} aria-label="Páginas da conta">
             {SIDEBAR_ITEMS.map((item) => (
               <ListItem
                 key={item.id}
@@ -177,6 +177,8 @@ export function SettingsDialog({
             page={activePage}
             onClose={onClose}
             onOpenProfileOverlay={onOpenProfileOverlay}
+            onOpenCreateList={onOpenCreateList}
+            initialApp={initialApp}
           />
         </main>
       </div>

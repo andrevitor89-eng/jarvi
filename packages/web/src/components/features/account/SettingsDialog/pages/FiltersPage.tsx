@@ -33,7 +33,13 @@ import styles from './FiltersPage.module.css';
 // COMPONENT
 // ============================================================================
 
-export function FiltersPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
+export function FiltersPage({
+  hideHeader = false,
+  onOpenCreateList,
+}: {
+  hideHeader?: boolean;
+  onOpenCreateList?: () => void;
+} = {}) {
   const { lists, isLoading, updateList, deleteList } = useLists();
 
   // Local order: updated optimistically on drag
@@ -45,6 +51,14 @@ export function FiltersPage({ hideHeader = false }: { hideHeader?: boolean } = {
 
   // Create dialog
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const openCreate = () => {
+    if (onOpenCreateList) {
+      onOpenCreateList();
+      return;
+    }
+    setIsCreateOpen(true);
+  };
 
   // Derive final sorted list using local order
   const sortedLists = orderedIds.length
@@ -130,7 +144,7 @@ export function FiltersPage({ hideHeader = false }: { hideHeader?: boolean } = {
             </p>
           </div>
         )}
-        <PrimaryButton onClick={() => setIsCreateOpen(true)}>
+        <PrimaryButton type="button" onClick={openCreate}>
           Novo Filtro
         </PrimaryButton>
       </div>
@@ -175,11 +189,12 @@ export function FiltersPage({ hideHeader = false }: { hideHeader?: boolean } = {
         )}
       </div>
 
-      {/* Create dialog */}
-      <CreateListPopover
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
+      {!onOpenCreateList && (
+        <CreateListPopover
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -301,6 +301,7 @@ Regras:
 - Se uma intenção mencionada na memória não tem tarefa correspondente ativa ou concluída, mantenha como "considerou/pensou em X" com contexto temporal se possível.
 - Remova redundâncias. Seja conciso mas completo.
 - Escreva em terceira pessoa, em português brasileiro.
+- Não copie os blocos "TAREFAS ATIVAS" ou "TAREFAS CONCLUÍDAS" para a memória. Eles são só contexto. Nunca escreva "(nenhuma)" na memória.
 - Retorne APENAS o texto da memória atualizada, sem explicações adicionais.`;
 
   try {

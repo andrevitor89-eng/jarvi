@@ -160,6 +160,9 @@ export function FilterPopover({
       const newList = await createList({
         name,
         categoryNames: filters.category,
+        priority: filters.priority || undefined,
+        connectedApp: filters.connectedApp || undefined,
+        showCompleted: filters.showCompleted,
       });
       toast.success('Filtro salvo como lista');
       setIsSaveView(false);

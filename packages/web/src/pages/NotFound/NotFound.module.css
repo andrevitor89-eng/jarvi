@@ -1,0 +1,36 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding: var(--sizes-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--semantic-surface-primary);
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sizes-6);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--typography-heading-lg-font-family);
+  font-size: var(--typography-heading-lg-font-size);
+  font-weight: var(--typography-heading-lg-font-weight);
+  line-height: var(--typography-heading-lg-line-height);
+  color: var(--semantic-content-primary);
+}
+
+.description {
+  margin: 0;
+  font-family: var(--typography-body-md-font-family);
+  font-size: var(--typography-body-md-font-size);
+  line-height: var(--typography-body-md-line-height);
+  color: var(--semantic-content-secondary);
+}

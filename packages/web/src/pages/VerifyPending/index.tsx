@@ -1,8 +1,15 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button, Logo, OtpInput } from '../../components/ui';
+import { Button, Input, Logo, OtpInput } from '../../components/ui';
 import { useForceTheme } from '../../hooks/useForceTheme';
 import { trackRegistrationCompleted } from '../../lib/openaiPixel';
+import {
+  clearPendingEmail,
+  persistPendingEmail,
+  readStoredPendingEmail,
+  resolvePendingEmail,
+  verifyPendingPath,
+} from '../../lib/pendingEmail';
 import styles from './VerifyPending.module.css';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -16,15 +23,31 @@ export const VerifyPending: React.FC = () => {
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
   const [verified, setVerified] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
   const lastSubmittedCodeRef = useRef<string | null>(null);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email || '';
+  const [email, setEmail] = useState(() =>
+    resolvePendingEmail({
+      search: location.search,
+      state: location.state as { email?: unknown } | null,
+      storage: readStoredPendingEmail(),
+    }),
+  );
+
+  useEffect(() => {
+    if (!email) return;
+    persistPendingEmail(email);
+    const expectedPath = verifyPendingPath(email);
+    if (`${location.pathname}${location.search}` !== expectedPath) {
+      navigate(expectedPath, { replace: true, state: { email } });
+    }
+  }, [email, location.pathname, location.search, navigate]);
 
   const handleVerifyCode = async (overrideCode?: string) => {
     if (!email) {
-      setError('Email não encontrado. Por favor, faça o cadastro novamente.');
+      setError('Informe o email usado no cadastro para validar o código.');
       return;
     }
 
@@ -59,18 +82,16 @@ export const VerifyPending: React.FC = () => {
 
       trackRegistrationCompleted(data.user?.id ? `cr_${data.user.id}` : undefined);
 
-      // Auto-login: salva token e redireciona para a home
       if (data.token) {
+        clearPendingEmail();
         localStorage.setItem('jarvi_token', data.token);
-        window.location.href = '/';
+        window.location.href = '/tasks';
         return;
       }
 
-      // Fallback (não esperado): mantém comportamento anterior
       setVerified(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao verificar código');
-      // Allow retry with the same code if request failed
       lastSubmittedCodeRef.current = null;
     } finally {
       setIsVerifying(false);
@@ -79,7 +100,7 @@ export const VerifyPending: React.FC = () => {
 
   const handleResendEmail = async () => {
     if (!email) {
-      setError('Email não encontrado. Por favor, faça o cadastro novamente.');
+      setError('Informe o email usado no cadastro para reenviar o código.');
       return;
     }
 
@@ -114,50 +135,87 @@ export const VerifyPending: React.FC = () => {
     navigate('/login');
   };
 
+  const handleUseAnotherEmail = () => {
+    clearPendingEmail();
+    navigate('/criar-conta');
+  };
+
+  const handleEmailSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const nextEmail = emailDraft.trim();
+    if (!nextEmail) {
+      setError('Digite o email usado no cadastro.');
+      return;
+    }
+    setError('');
+    persistPendingEmail(nextEmail);
+    setEmail(nextEmail);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.wrapper}>
         <Logo className={styles.logo} />
-        
+
         <div className={styles.content}>
           <h1 className={styles.title}>Verifique seu email</h1>
-          
-          <p className={styles.description}>
-            Enviamos um código de verificação para{' '}
-            {email ? (
+
+          {email ? (
+            <p className={styles.description}>
+              Enviamos um código de verificação para{' '}
               <span className={styles.email}>{email}</span>
-            ) : (
-              'seu email'
-            )}
-            . Digite o código abaixo para ativar sua conta.
-          </p>
+              . Digite o código abaixo para ativar sua conta.
+            </p>
+          ) : (
+            <p className={styles.description}>
+              Não encontramos o email desta verificação. Informe o endereço usado no cadastro para continuar.
+            </p>
+          )}
 
           {message && <div className={styles.success}>{message}</div>}
           {error && <div className={styles.error}>{error}</div>}
 
-            <div className={styles.actions}>
-              {!verified && (
-                <OtpInput
-                  value={code}
-                  onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
-                  length={6}
-                  disabled={isVerifying}
-                  error={!!error}
-                  onComplete={(v) => handleVerifyCode(v)}
+          <div className={styles.actions}>
+            {!email && (
+              <form className={styles.emailForm} onSubmit={handleEmailSubmit}>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="seu@email.com"
+                  value={emailDraft}
+                  onChange={(e) => setEmailDraft(e.target.value)}
+                  showLabel={false}
+                  autoComplete="email"
                 />
-              )}
-
-              {verified && (
-                <Button
-                  variant="primary"
-                  size="medium"
-                  fullWidth
-                  onClick={handleBackToLogin}
-                >
-                  Ir para o login
+                <Button type="submit" variant="primary" size="medium" fullWidth>
+                  Continuar
                 </Button>
-              )}
+              </form>
+            )}
 
+            {email && !verified && (
+              <OtpInput
+                value={code}
+                onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+                length={6}
+                disabled={isVerifying}
+                error={!!error}
+                onComplete={(v) => handleVerifyCode(v)}
+              />
+            )}
+
+            {verified && (
+              <Button
+                variant="primary"
+                size="medium"
+                fullWidth
+                onClick={handleBackToLogin}
+              >
+                Ir para o login
+              </Button>
+            )}
+
+            {email && (
               <Button
                 variant="secondary"
                 size="medium"
@@ -168,17 +226,27 @@ export const VerifyPending: React.FC = () => {
               >
                 Reenviar código
               </Button>
+            )}
 
-              <div className={styles.inlineLink}>
+            <div className={styles.inlineLink}>
+              {email && (
                 <button
                   type="button"
                   className={styles.footerLink}
-                  onClick={handleBackToLogin}
+                  onClick={handleUseAnotherEmail}
                 >
-                  Voltar ao login
+                  Usar outro email
                 </button>
-              </div>
+              )}
+              <button
+                type="button"
+                className={styles.footerLink}
+                onClick={handleBackToLogin}
+              >
+                Voltar ao login
+              </button>
             </div>
+          </div>
 
           <div className={styles.footer}>
             <span>Não recebeu o email? Verifique sua pasta de spam.</span>

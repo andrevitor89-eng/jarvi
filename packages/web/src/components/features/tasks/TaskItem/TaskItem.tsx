@@ -355,6 +355,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           {/* Action buttons - appear on hover */}
           <div className={styles.actions}>
             <button
+              type="button"
               className={styles.actionButton}
               onClick={(e) => {
                 e.preventDefault();
@@ -362,17 +363,20 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
                 onEdit(task);
               }}
               title="Editar tarefa"
+              aria-label="Editar tarefa"
             >
               <PencilSimple className={styles.actionButtonIcon} />
             </button>
             <button
+              type="button"
               className={styles.actionButton}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onDelete(task.id);
               }}
-              title="Deletar tarefa"
+              title="Excluir tarefa"
+              aria-label="Excluir tarefa"
             >
               <Trash className={styles.actionButtonIcon} />
             </button>

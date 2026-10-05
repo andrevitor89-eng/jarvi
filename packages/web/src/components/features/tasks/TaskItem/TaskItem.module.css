@@ -125,14 +125,13 @@
   align-items: center;
   gap: var(--sizes-1);
   opacity: 0;
-  width: 0;
-  overflow: hidden;
-  transition: opacity 0.15s ease, width 0.15s ease;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 
 .taskItem:hover .actions {
   opacity: 1;
-  width: auto;
+  pointer-events: auto;
 }
 
 /* Action button */

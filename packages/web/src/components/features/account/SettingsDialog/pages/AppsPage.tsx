@@ -97,8 +97,14 @@ const parseApiPayload = async (response: Response): Promise<Record<string, unkno
 
 type AppsView = 'list' | 'whatsapp' | 'gmail';
 
-export function AppsPage({ hideHeader = false }: { hideHeader?: boolean } = {}) {
-  const [view, setView] = useState<AppsView>('list');
+export function AppsPage({
+  hideHeader = false,
+  initialApp,
+}: {
+  hideHeader?: boolean;
+  initialApp?: 'whatsapp' | 'gmail';
+} = {}) {
+  const [view, setView] = useState<AppsView>(initialApp ?? 'list');
 
   if (view === 'whatsapp') {
     return <WhatsAppConnectPage onBack={() => setView('list')} />;
@@ -163,10 +169,10 @@ function AppsList({ onConnect, hideHeader = false }: AppsListProps) {
                 aria-label={
                   app.available
                     ? `Conectar ${app.name}`
-                    : `${app.name} ainda não está disponível`
+                    : `${app.name} — em breve`
                 }
               >
-                Conectar
+                {app.available ? 'Conectar' : 'Em breve'}
               </Button>
             </div>
           </li>
@@ -248,6 +254,11 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     clearFeedback();
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
+      setError('Introduz um número de WhatsApp.');
+      return;
+    }
     setRequestLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/users/whatsapp-link/request`, {
@@ -256,13 +267,13 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone: trimmedPhone }),
       });
       const data = await parseApiPayload(res);
       if (!res.ok) throw new Error(String(data.error || 'Erro ao enviar código de verificação'));
 
       setSuccessMsg(String(data.message || 'Código enviado com sucesso.'));
-      setLinkedPhone(typeof data.phone === 'string' ? data.phone : phone);
+      setLinkedPhone(typeof data.phone === 'string' ? data.phone : trimmedPhone);
       setWhatsappState('awaitingCode');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao enviar código');
@@ -379,13 +390,13 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
       <p className={styles.pageSubtitle}>Gerencie os aplicativos conectados à sua conta.</p>
 
       {/* Feedback */}
-      {statusLoading && <p className={styles.pageSubtitle}>Carregando...</p>}
+      {statusLoading && <p className={styles.pageSubtitle}>Verificando conexão...</p>}
       {error && <p className={styles.feedbackError}>{error}</p>}
       {successMsg && <p className={styles.feedbackSuccess}>{successMsg}</p>}
 
       {/* ── INITIAL STATE ─────────────────────────────────────────── */}
-      {whatsappState === 'initial' && (
-        <form className={styles.formSection} onSubmit={handleRequestCode}>
+      {!statusLoading && whatsappState === 'initial' && (
+        <form className={styles.formSection} onSubmit={handleRequestCode} noValidate>
           <div>
             <label className={styles.fieldLabel} htmlFor="wa-phone-initial">
               Número do WhatsApp
@@ -399,7 +410,6 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 showLabel={false}
-                required
               />
               <Button
                 type="submit"
@@ -416,7 +426,7 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
       )}
 
       {/* ── AWAITING CODE STATE ────────────────────────────────────── */}
-      {whatsappState === 'awaitingCode' && (
+      {!statusLoading && whatsappState === 'awaitingCode' && (
         <form className={styles.formSection} onSubmit={handleVerifyCode}>
           <div>
             <label className={styles.fieldLabel} htmlFor="wa-phone-await">
@@ -474,7 +484,7 @@ function WhatsAppConnectPage({ onBack }: WhatsAppConnectPageProps) {
       )}
 
       {/* ── CONNECTED STATE ────────────────────────────────────────── */}
-      {whatsappState === 'connected' && (
+      {!statusLoading && whatsappState === 'connected' && (
         <div className={styles.formSection}>
           <div className={styles.connectedRow}>
             <span className={styles.connectedBadge}>Conectado</span>

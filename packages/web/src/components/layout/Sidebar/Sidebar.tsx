@@ -49,10 +49,18 @@ import { SidebarUserMenu } from './SidebarUserMenu';
 import { UpgradeButton } from '../../ui/UpgradeButton/UpgradeButton';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { SignOut, Gear } from '@phosphor-icons/react';
 import { FeedbackDialog } from '../../features/feedback/FeedbackDialog';
 import type { FeedbackKind } from '../../../lib/posthogFeedback';
+import { CreateListPopover } from '../../features/tasks/CreateListPopover/CreateListPopover';
+import {
+  APP_PARAM,
+  CONTA_PARAM,
+  FEEDBACK_PARAM,
+  parseSettingsPage,
+  tasksPathname,
+} from '../../../lib/taskShellSearch';
 import styles from './Sidebar.module.css';
 
 // ── Re-exported task navigation constants ─────────────────────────────────────
@@ -214,6 +222,10 @@ export function Sidebar({
   forceCollapsed,
 }: SidebarProps) {
   const { isMobile, close: closeMobileSidebar } = useMobileSidebar();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const settingsPushedRef = useRef(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHoverExpanded, setIsHoverExpanded] = useState(false);
   const prevCollapsedRef = useRef<boolean>(false);
@@ -234,6 +246,7 @@ export function Sidebar({
   const [settingsInitialPage, setSettingsInitialPage] = useState<SettingsPage>('profile');
   // On mobile, settings open as a bottom sheet instead of the desktop modal.
   const [mobileSettingsPage, setMobileSettingsPage] = useState<SettingsPage | null>(null);
+  const [isCreateListOpen, setIsCreateListOpen] = useState(false);
   const [profileOverlay, setProfileOverlay] = useState<SettingsProfileOverlay | null>(null);
 
   useEffect(() => {
@@ -243,7 +256,33 @@ export function Sidebar({
   }, [isSettingsOpen, mobileSettingsPage]);
 
   // Opens a settings page — bottom sheet on mobile, modal on desktop.
-  const openSettings = (page: SettingsPage) => {
+  const pushAccountSearch = (page: SettingsPage, extra?: { app?: string }) => {
+    const params = new URLSearchParams(location.search);
+    params.set(CONTA_PARAM, page);
+    if (extra?.app) params.set(APP_PARAM, extra.app);
+    else if (page !== 'apps') params.delete(APP_PARAM);
+    settingsPushedRef.current = true;
+    navigate({
+      pathname: tasksPathname(location.pathname),
+      search: `?${params.toString()}`,
+    });
+  };
+
+  const stripAccountSearch = (replace = true) => {
+    const params = new URLSearchParams(location.search);
+    params.delete(CONTA_PARAM);
+    params.delete(APP_PARAM);
+    navigate(
+      {
+        pathname: tasksPathname(location.pathname),
+        search: params.toString() ? `?${params.toString()}` : '',
+      },
+      { replace },
+    );
+  };
+
+  const openSettings = (page: SettingsPage, extra?: { app?: string }) => {
+    pushAccountSearch(page, extra);
     if (isMobile) {
       setMobileSettingsPage(page);
     } else {
@@ -277,8 +316,6 @@ export function Sidebar({
 
   const profileButtonRef =
     isDesktopCollapsed ? collapsedProfileButtonRef : expandedProfileButtonRef;
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const { user, token, logout } = useAuth();
   const { subscription, daysLeftInTrial } = useSubscription();
@@ -336,11 +373,28 @@ export function Sidebar({
   }, []);
 
   useEffect(() => {
-    if (location.pathname === '/settings') {
-      if (isMobile) setMobileSettingsPage('profile');
-      else setIsSettingsOpen(true);
+    const conta = parseSettingsPage(searchParams.get(CONTA_PARAM));
+    if (!conta) {
+      setIsSettingsOpen(false);
+      setMobileSettingsPage(null);
+      return;
     }
-  }, [location.pathname, isMobile]);
+    if (isMobile) {
+      setMobileSettingsPage(conta);
+    } else {
+      setSettingsInitialPage(conta);
+      setIsSettingsOpen(true);
+    }
+  }, [searchParams, isMobile]);
+
+  useEffect(() => {
+    const feedback = searchParams.get(FEEDBACK_PARAM);
+    if (feedback === 'ideas' || feedback === 'report') {
+      setFeedbackKind(feedback);
+    } else {
+      setFeedbackKind(null);
+    }
+  }, [searchParams]);
 
   // ── Nav click handler ───────────────────────────────────────────────────────
   const handleNavClick = (listType: ListType) => {
@@ -390,18 +444,32 @@ export function Sidebar({
   };
 
   const handleAddFilter = () => {
-    openSettings('filters');
+    setIsSettingsOpen(false);
+    setMobileSettingsPage(null);
+    setIsCreateListOpen(true);
   };
 
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
-    navigate('/tasks', { replace: true });
+    if (searchParams.has(CONTA_PARAM)) {
+      if (settingsPushedRef.current && window.history.length > 1) {
+        settingsPushedRef.current = false;
+        navigate(-1);
+      } else {
+        stripAccountSearch(true);
+      }
+    }
   };
 
   const handleCloseMobileSettings = () => {
     setMobileSettingsPage(null);
-    if (location.pathname === '/settings') {
-      navigate('/tasks', { replace: true });
+    if (searchParams.has(CONTA_PARAM)) {
+      if (settingsPushedRef.current && window.history.length > 1) {
+        settingsPushedRef.current = false;
+        navigate(-1);
+      } else {
+        stripAccountSearch(true);
+      }
     }
   };
 
@@ -534,7 +602,15 @@ export function Sidebar({
               type="button"
               className={styles.footerBugButton}
               aria-label="Sugerir ideias"
-              onClick={() => setFeedbackKind('ideas')}
+              onClick={() => {
+                const params = new URLSearchParams(location.search);
+                params.set(FEEDBACK_PARAM, 'ideas');
+                settingsPushedRef.current = true;
+                navigate({
+                  pathname: tasksPathname(location.pathname),
+                  search: `?${params.toString()}`,
+                });
+              }}
             >
               <Lightbulb size={20} />
             </button>
@@ -544,7 +620,15 @@ export function Sidebar({
               type="button"
               className={styles.footerBugButton}
               aria-label="Reportar problema"
-              onClick={() => setFeedbackKind('report')}
+              onClick={() => {
+                const params = new URLSearchParams(location.search);
+                params.set(FEEDBACK_PARAM, 'report');
+                settingsPushedRef.current = true;
+                navigate({
+                  pathname: tasksPathname(location.pathname),
+                  search: `?${params.toString()}`,
+                });
+              }}
             >
               <Bug size={20} />
             </button>
@@ -693,7 +777,15 @@ export function Sidebar({
                 type="button"
                 className={styles.footerBugButton}
                 aria-label="Sugerir ideias"
-                onClick={() => setFeedbackKind('ideas')}
+                onClick={() => {
+                const params = new URLSearchParams(location.search);
+                params.set(FEEDBACK_PARAM, 'ideas');
+                settingsPushedRef.current = true;
+                navigate({
+                  pathname: tasksPathname(location.pathname),
+                  search: `?${params.toString()}`,
+                });
+              }}
               >
                 <Lightbulb size={20} />
               </button>
@@ -703,7 +795,15 @@ export function Sidebar({
                 type="button"
                 className={styles.footerBugButton}
                 aria-label="Reportar problema"
-                onClick={() => setFeedbackKind('report')}
+                onClick={() => {
+                const params = new URLSearchParams(location.search);
+                params.set(FEEDBACK_PARAM, 'report');
+                settingsPushedRef.current = true;
+                navigate({
+                  pathname: tasksPathname(location.pathname),
+                  search: `?${params.toString()}`,
+                });
+              }}
               >
                 <Bug size={20} />
               </button>
@@ -718,6 +818,7 @@ export function Sidebar({
         onClose={() => setIsDropdownOpen(false)}
         anchorRef={profileButtonRef}
         align="left"
+        position="top"
         width={isMobile ? 240 : 200}
         gap={isDesktopCollapsed ? 6 : 8}
         offsetX={isDesktopCollapsed ? 2 : 0}
@@ -758,9 +859,23 @@ export function Sidebar({
           variant="welcome"
           onAction={() => {
             setWhatsAppPromoPlacement('hidden');
-            openSettings('apps');
+            if (user?.id && token) {
+              void dismissWhatsAppPromo(user.id, token).catch((error) => {
+                console.error('Error dismissing WhatsApp promo:', error);
+                whatsAppPromoPlacementRequests.delete(user.id);
+              });
+            }
+            openSettings('apps', { app: 'whatsapp' });
           }}
-          onSecondaryAction={() => setWhatsAppPromoPlacement('hidden')}
+          onSecondaryAction={() => {
+            setWhatsAppPromoPlacement('hidden');
+            if (user?.id && token) {
+              void dismissWhatsAppPromo(user.id, token).catch((error) => {
+                console.error('Error dismissing WhatsApp promo:', error);
+                whatsAppPromoPlacementRequests.delete(user.id);
+              });
+            }
+          }}
         />
       </Dialog>
 
@@ -772,7 +887,7 @@ export function Sidebar({
               onClose={() => setWhatsAppPromoPlacement('hidden')}
               onAction={() => {
                 setWhatsAppPromoPlacement('hidden');
-                openSettings('apps');
+                openSettings('apps', { app: 'whatsapp' });
               }}
               onSecondaryAction={() => {
                 setWhatsAppPromoPlacement('hidden');
@@ -791,20 +906,42 @@ export function Sidebar({
       <FeedbackDialog
         kind={feedbackKind}
         isOpen={feedbackKind !== null}
-        onClose={() => setFeedbackKind(null)}
+        onClose={() => {
+          setFeedbackKind(null);
+          if (!searchParams.has(FEEDBACK_PARAM)) return;
+          if (settingsPushedRef.current && window.history.length > 1) {
+            settingsPushedRef.current = false;
+            navigate(-1);
+          } else {
+            const params = new URLSearchParams(location.search);
+            params.delete(FEEDBACK_PARAM);
+            navigate(
+              {
+                pathname: tasksPathname(location.pathname),
+                search: params.toString() ? `?${params.toString()}` : '',
+              },
+              { replace: true },
+            );
+          }
+        }}
       />
 
       {/* Desktop: full settings modal (hidden while a profile child overlay is open) */}
       <SettingsDialog
-        isOpen={isSettingsOpen && profileOverlay === null}
+        isOpen={isSettingsOpen && profileOverlay === null && !isCreateListOpen}
         onClose={handleCloseSettings}
         initialPage={settingsInitialPage}
+        initialApp={searchParams.get(APP_PARAM) === 'whatsapp' ? 'whatsapp' : undefined}
         onOpenProfileOverlay={setProfileOverlay}
+        onOpenCreateList={() => {
+          setIsSettingsOpen(false);
+          setIsCreateListOpen(true);
+        }}
       />
 
       {/* Mobile: single settings page in a bottom sheet */}
       <BottomSheet
-        isOpen={mobileSettingsPage !== null && profileOverlay === null}
+        isOpen={mobileSettingsPage !== null && profileOverlay === null && !isCreateListOpen}
         onClose={handleCloseMobileSettings}
         title={SIDEBAR_ITEMS.find((item) => item.id === mobileSettingsPage)?.label}
       >
@@ -814,9 +951,22 @@ export function Sidebar({
             onClose={handleCloseMobileSettings}
             hideHeader
             onOpenProfileOverlay={setProfileOverlay}
+            initialApp={searchParams.get(APP_PARAM) === 'whatsapp' ? 'whatsapp' : undefined}
+            onOpenCreateList={() => {
+              setMobileSettingsPage(null);
+              setIsCreateListOpen(true);
+            }}
           />
         )}
       </BottomSheet>
+
+      <CreateListPopover
+        isOpen={isCreateListOpen}
+        onClose={() => {
+          setIsCreateListOpen(false);
+          openSettings('filters');
+        }}
+      />
 
       <ChangePasswordDialog
         isOpen={profileOverlay === 'password'}

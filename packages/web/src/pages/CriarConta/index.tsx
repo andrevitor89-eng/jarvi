@@ -10,6 +10,7 @@ import { Button, Divider, Logo, PasswordInput } from '../../components/ui';
 import { GoogleLogin } from '../../components/features/auth';
 import { useForceTheme } from '../../hooks/useForceTheme';
 import { trackPixel, getFbCookies, generateEventId } from '../../lib/metaPixel';
+import { persistPendingEmail, verifyPendingPath } from '../../lib/pendingEmail';
 import styles from './CriarConta.module.css';
 
 // ============================================================================
@@ -449,9 +450,10 @@ export function CriarConta() {
         { fbc, fbp, eventId, eventSourceUrl: window.location.href },
       );
       if (result.pendingVerification) {
-        navigate('/verify-pending', { state: { email: result.email } });
+        persistPendingEmail(result.email);
+        navigate(verifyPendingPath(result.email), { state: { email: result.email } });
       } else {
-        navigate('/');
+        navigate('/tasks');
       }
     } catch (err) {
       setAccountError(err instanceof Error ? err.message : 'Não foi possível criar sua conta agora.');
@@ -470,7 +472,7 @@ export function CriarConta() {
     try {
       const { fbc, fbp } = getFbCookies();
       await loginWithGoogle(idToken, buildOnboardingPayload(''), { fbc, fbp });
-      navigate('/');
+      navigate('/tasks');
     } catch (err) {
       setAccountError(err instanceof Error ? err.message : 'Não foi possível criar sua conta com o Google agora.');
     } finally {
@@ -516,14 +518,13 @@ export function CriarConta() {
 
   const renderStep = () => {
     if (showAccountStep) {
-      const firstName = formData.name.trim().split(/\s+/)[0] ?? '';
-      const displayFirstName = capitalizeFirstLetter(firstName);
+      const displayName = capitalizeFirstLetter(formData.name.trim());
       const isBusy = isCreatingAccount || isGoogleSubmitting;
       return (
         <div className={styles.accountStep}>
           <div className={styles.questionBlock}>
             <h1>
-              {displayFirstName ? `Quase lá, ${displayFirstName}!` : 'Quase lá!'}
+              {displayName ? `Quase lá, ${displayName}!` : 'Quase lá!'}
               <br />
               Crie sua conta.
             </h1>
@@ -724,6 +725,7 @@ export function CriarConta() {
 
   const STEP_NAMES_KEYS = STEP_NAMES;
   void STEP_NAMES_KEYS;
+  const canContinue = getStepError(step, formData) === null;
 
   return (
     <div className={styles.container}>
@@ -743,9 +745,10 @@ export function CriarConta() {
             <div className={styles.stepContent}>{renderStep()}</div>
             <Button
               type="submit"
-              variant={isFinalStep ? 'primary' : 'secondary'}
+              variant="primary"
               size="medium"
               fullWidth
+              disabled={!canContinue}
             >
               Continuar
             </Button>
