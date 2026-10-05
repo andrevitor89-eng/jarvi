@@ -47,7 +47,7 @@
 /* Main content area */
 .main {
   flex: 1;
-  min-width: 0;
+  min-width: 280px;
   height: calc(100vh - var(--sizes-6) - var(--sizes-16));
   padding: var(--sizes-8) var(--sizes-12) 0 var(--sizes-12);
   background: linear-gradient(
@@ -77,8 +77,9 @@
 
 /* Right sidebar container */
 .rightSidebar {
-  flex-shrink: 0;
-  width: 606px;
+  flex-shrink: 1;
+  width: min(606px, 42vw);
+  min-width: 280px;
   max-width: 606px;
   height: calc(100vh - var(--sizes-6) - var(--sizes-16));
   background: linear-gradient(

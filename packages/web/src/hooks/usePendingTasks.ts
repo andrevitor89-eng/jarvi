@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../components/ui/Sonner';
+import { apiClient, ApiError } from '../lib/apiClient';
 
 export interface PendingTask {
   id: string;
@@ -45,7 +46,7 @@ interface UsePendingTasksResult {
   ) => Promise<void>;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+const SOCKET_ORIGIN = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/api\/?$/, '');
 
 export const usePendingTasks = (): UsePendingTasksResult => {
   const { token } = useAuth();
@@ -56,6 +57,7 @@ export const usePendingTasks = (): UsePendingTasksResult => {
   const refresh = useCallback(async () => {
     if (!token) {
       setPendingTasks([]);
+      setError(null);
       return;
     }
 
@@ -63,20 +65,14 @@ export const usePendingTasks = (): UsePendingTasksResult => {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/pending-tasks`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao buscar tarefas pendentes');
-      }
-
-      const data = (await response.json()) as PendingTask[];
-      setPendingTasks(data);
+      const data = await apiClient.get<PendingTask[]>('/api/pending-tasks');
+      setPendingTasks(Array.isArray(data) ? data : []);
     } catch (fetchError) {
+      if (fetchError instanceof ApiError && (fetchError.status === 401 || fetchError.status === 403)) {
+        setPendingTasks([]);
+        setError(null);
+        return;
+      }
       console.error('Error loading pending tasks:', fetchError);
       setError('Não foi possível carregar as tarefas pendentes.');
     } finally {
@@ -88,18 +84,7 @@ export const usePendingTasks = (): UsePendingTasksResult => {
     async (id: string) => {
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/api/pending-tasks/${id}/confirm`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao confirmar tarefa pendente');
-      }
-
+      await apiClient.post(`/api/pending-tasks/${id}/confirm`);
       setPendingTasks((prev) => prev.filter((task) => task.id !== id));
       toast.success('Tarefa confirmada e criada com sucesso.');
     },
@@ -110,18 +95,7 @@ export const usePendingTasks = (): UsePendingTasksResult => {
     async (id: string) => {
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/api/pending-tasks/${id}/reject`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao rejeitar tarefa pendente');
-      }
-
+      await apiClient.post(`/api/pending-tasks/${id}/reject`);
       setPendingTasks((prev) => prev.filter((task) => task.id !== id));
       toast.success('Sugestão rejeitada.');
     },
@@ -142,20 +116,7 @@ export const usePendingTasks = (): UsePendingTasksResult => {
     ) => {
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/api/pending-tasks/${id}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao atualizar sugestão de tarefa');
-      }
-
-      const updatedTask = (await response.json()) as PendingTask;
+      const updatedTask = await apiClient.put<PendingTask>(`/api/pending-tasks/${id}`, updates);
       setPendingTasks((prev) => prev.map((task) => (task.id === id ? updatedTask : task)));
     },
     [token]
@@ -168,7 +129,7 @@ export const usePendingTasks = (): UsePendingTasksResult => {
   useEffect(() => {
     if (!token) return;
 
-    const socket: Socket = io(API_BASE_URL, {
+    const socket: Socket = io(SOCKET_ORIGIN || undefined, {
       auth: { token },
       transports: ['websocket', 'polling'],
     });
@@ -190,7 +151,7 @@ export const usePendingTasks = (): UsePendingTasksResult => {
     return () => {
       socket.disconnect();
     };
-  }, [token]);
+  }, [token, refresh]);
 
   return {
     pendingTasks,

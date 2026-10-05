@@ -103,6 +103,13 @@
   font-size: var(--typography-body-sm-font-size);
 }
 
+.pendingSectionErrorRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sizes-3);
+}
+
 .pendingSectionError {
   margin: 0;
   padding: var(--sizes-2) 0;

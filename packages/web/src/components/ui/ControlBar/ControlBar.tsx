@@ -275,6 +275,27 @@ export function ControlBar({
     [addPromptFiles],
   );
 
+  const handleCreateTaskFromText = async (text: string) => {
+    if (!text.trim() || trialExpired || !onCreateTask) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const createdTask = await onCreateTask({
+      title: text.trim(),
+      description: '',
+      dueDate: today.toISOString().split('T')[0],
+    });
+
+    toast.success('Tarefa criada com sucesso', {
+      hasButton: true,
+      action:
+        createdTask && onOpenTaskDetails
+          ? { label: 'Visualizar', onClick: () => onOpenTaskDetails(createdTask) }
+          : undefined,
+    });
+    onMobileClose?.();
+  };
+
   const handlePromptSubmit = () => {
     if (trialExpired) return;
     const text = promptText.trim();
@@ -290,10 +311,35 @@ export function ControlBar({
   };
 
   const handlePromptKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    if (promptAttachments.length > 0) {
       handlePromptSubmit();
+      return;
     }
+    const text = promptText.trim();
+    if (!text) return;
+    void handleCreateTaskFromText(text);
+    setPromptText('');
+  };
+
+  const resetTaskFields = () => {
+    setTitle('');
+    setDescription('');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    setDueDate(today);
+    setDueTime('');
+    setCategory(defaultCategory || '');
+    setPriority(undefined);
+    setIsDefaultDate(true);
+    setFrequency({ recurrenceType: 'none', recurrenceConfig: null });
+    setReminders([]);
+    setShowDatePicker(false);
+    setShowCategoryPicker(false);
+    setShowPriorityPicker(false);
+    setShowFrequencyPicker(false);
+    setShowReminderPicker(false);
   };
 
   // ── Task creation handlers ────────────────────────────────────────────────────
@@ -329,15 +375,18 @@ export function ControlBar({
           : undefined,
     });
 
-    handleSwitchToPrompt();
+    resetTaskFields();
     onMobileClose?.();
   };
 
   const handleTaskKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') handleSwitchToPrompt();
-    if (e.key === 'Enter' && !e.shiftKey && e.target === titleInputRef.current) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.tagName === 'TEXTAREA') return;
+    if (target === titleInputRef.current || target?.tagName === 'INPUT') {
       e.preventDefault();
-      if (title.trim()) handleSubmitTask();
+      if (title.trim()) void handleSubmitTask();
     }
   };
 
@@ -509,7 +558,7 @@ export function ControlBar({
                     size="medium"
                     interactive
                     active={showDatePicker || (!isDefaultDate && !!dueDate) || !!dueTime}
-                    onClick={() => setShowDatePicker(true)}
+                    onClick={() => setShowDatePicker((open) => !open)}
                     onClear={dueDate || dueTime ? () => { setDueDate(null); setDueTime(''); setIsDefaultDate(false); } : undefined}
                   />
                 </div>
@@ -578,9 +627,10 @@ export function ControlBar({
                 {toggleGroup}
 
                 <Button
+                  type="button"
                   variant="primary"
                   className={styles.submitButton}
-                  onClick={handleSubmitTask}
+                  onClick={() => void handleSubmitTask()}
                   disabled={isSubmitDisabled}
                 >
                   Adicionar
@@ -672,7 +722,7 @@ export function ControlBar({
                 type="button"
                 className={styles.sendButton}
                 onClick={handlePromptSubmit}
-                aria-label="Enviar"
+                aria-label="Enviar para a IA"
                 disabled={trialExpired}
               >
                 <PaperPlaneTilt weight="fill" size={20} />
@@ -684,6 +734,7 @@ export function ControlBar({
 
       {/* Popovers */}
       <TaskDatePicker
+        key={`controlbar-date-${showDatePicker ? 'open' : 'closed'}`}
         isOpen={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         selectedDate={dueDate || undefined}

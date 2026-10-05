@@ -18,7 +18,7 @@ export function MemoryPage() {
   const { token } = useAuth();
   const [memoryText, setMemoryText] = useState('');
   const [originalMemoryText, setOriginalMemoryText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -88,11 +88,12 @@ export function MemoryPage() {
 
       <TextArea
         id="memory-text"
-        value={memoryText}
+        value={loading ? '' : memoryText}
         onChange={(e) => setMemoryText(e.target.value)}
         rows={16}
         resize="none"
         disabled={loading || saving}
+        placeholder={loading ? 'A carregar...' : undefined}
       />
 
       <div className={styles.memoryActions}>

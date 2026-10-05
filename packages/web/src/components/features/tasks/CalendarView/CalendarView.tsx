@@ -89,10 +89,20 @@ function formatDayTitle(date: Date): string {
   return `${date.getDate()} ${PT_MONTH_NAMES[date.getMonth()]}`;
 }
 
-function formatWeekTitle(days: Date[]): string {
+export function formatWeekTitle(days: Date[]): string {
   const first = days[0];
+  const last = days[days.length - 1] ?? first;
+  if (!first) return '';
 
-  return `${PT_MONTH_NAMES[first.getMonth()]} ${first.getFullYear()}`;
+  const firstMonth = PT_MONTH_NAMES[first.getMonth()];
+  const lastMonth = PT_MONTH_NAMES[last.getMonth()];
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${first.getDate()} ${firstMonth.slice(0, 3)} ${first.getFullYear()} – ${last.getDate()} ${lastMonth.slice(0, 3)} ${last.getFullYear()}`;
+  }
+  if (first.getMonth() !== last.getMonth()) {
+    return `${first.getDate()} ${firstMonth.slice(0, 3)} – ${last.getDate()} ${lastMonth.slice(0, 3)} ${last.getFullYear()}`;
+  }
+  return `${firstMonth} ${first.getFullYear()}`;
 }
 
 function buildMonthDays(anchorDate: Date): Date[] {
@@ -192,13 +202,13 @@ function CalendarEmptySlot({
 
   return (
     <div
-      className={`${styles.emptySlot} ${isHovered && onCreateTask ? styles.emptySlotHovered : ''}`}
+      className={`${styles.emptySlot} ${onCreateTask ? styles.emptySlotHovered : ''}`}
       onMouseEnter={() => onMouseEnter(slotKey)}
       onMouseLeave={onMouseLeave}
       onClick={handleClick}
     >
-      {isHovered && onCreateTask && (
-        <span className={styles.emptySlotHint}>
+      {onCreateTask && (
+        <span className={styles.emptySlotHint} data-hovered={isHovered ? 'true' : 'false'}>
           <Plus size={13} aria-hidden /> Nova tarefa
         </span>
       )}
@@ -305,7 +315,7 @@ function CalendarTaskPill({
         ariaLabel={task.completed ? 'Marcar como não concluída' : 'Marcar como concluída'}
         className={styles.calendarCheckbox}
       />
-      <span className={styles.taskTitle}>{task.title}</span>
+      <span className={styles.taskTitle}>{task.title?.trim() || 'Sem título'}</span>
       <div className={styles.taskActions}>
         <button
           className={styles.taskActionBtn}
@@ -737,6 +747,9 @@ export function CalendarView({
                   ].filter(Boolean).join(' ')}
                   onMouseEnter={() => setHoveredSlotKey(cellSlotKey)}
                   onMouseLeave={() => setHoveredSlotKey(null)}
+                  onClick={() => {
+                    if (onCreateTask && !isCellEditing) setActiveSlotKey(cellSlotKey);
+                  }}
                   onDragEnter={() => setDropTargetKey(`date-${dateKey}`)}
                   onDragOver={(event) => {
                     event.preventDefault();
@@ -757,7 +770,10 @@ export function CalendarView({
                       <button
                         type="button"
                         className={`${styles.monthAddBtn} ${!isCellHovered ? styles.monthAddBtnIdle : ''}`}
-                        onClick={() => setActiveSlotKey(cellSlotKey)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setActiveSlotKey(cellSlotKey);
+                        }}
                       >
                         <Plus size={12} aria-hidden />
                       </button>

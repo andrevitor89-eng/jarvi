@@ -141,6 +141,15 @@
 .inlineLink {
   display: flex;
   justify-content: center;
+  gap: var(--sizes-4);
+  flex-wrap: wrap;
+}
+
+.emailForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sizes-4);
+  width: 100%;
 }
 
 /* ============================================================================

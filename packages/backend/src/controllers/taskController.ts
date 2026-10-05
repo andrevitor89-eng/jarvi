@@ -64,7 +64,7 @@ export const createTask = async (
       return;
     }
 
-    if (!title) {
+    if (!title || !String(title).trim()) {
       res.status(400).json({ error: 'Title is required' });
       return;
     }
@@ -312,15 +312,22 @@ export const updateTask = async (
           );
           console.log('Successfully updated with time column');
         } catch (timeColumnError) {
-          // Se falhar (coluna time não existe), atualizar sem a coluna time
           console.log('Time column not found, updating without time field. Error:', timeColumnError);
-          // Converter strings vazias para null para campos de timestamp
           const dueDateValue = dueDate !== undefined ? (dueDate === '' ? null : dueDate) : existingTask.due_date;
-          
+          const recurrenceTypeValue = recurrence_type !== undefined
+            ? sanitizeRecurrenceType(recurrence_type)
+            : existingTask.recurrence_type;
+          const recurrenceConfigValue = recurrence_config !== undefined
+            ? recurrence_config
+            : existingTask.recurrence_config;
+          const recurrenceUntilValue = recurrence_until !== undefined
+            ? sanitizeRecurrenceUntil(recurrence_until)
+            : existingTask.recurrence_until;
+
           await client.query(
             `UPDATE tasks 
-             SET title = $1, description = $2, completed = $3, priority = $4, category = $5, important = $6, due_date = $7, updated_at = $8
-             WHERE id = $9 AND user_id = $10`,
+             SET title = $1, description = $2, completed = $3, priority = $4, category = $5, important = $6, due_date = $7, recurrence_type = $8, recurrence_config = $9, recurrence_until = $10, updated_at = $11
+             WHERE id = $12 AND user_id = $13`,
             [
               title || existingTask.title,
               description !== undefined ? description : existingTask.description,
@@ -329,6 +336,9 @@ export const updateTask = async (
               category !== undefined ? category : existingTask.category,
               important !== undefined ? important : existingTask.important,
               dueDateValue,
+              recurrenceTypeValue,
+              recurrenceConfigValue,
+              recurrenceUntilValue,
               now,
               id,
               userId,

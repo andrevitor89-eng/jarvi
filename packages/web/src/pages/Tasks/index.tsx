@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback, memo, useEffect, useRef, type ReactNode } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { MOBILE_BREAKPOINT } from '../../components/layout/MainLayout/MainLayout';
 import { BottomSheet } from '../../components/ui';
@@ -29,6 +30,16 @@ import type { FilterState } from '../../components/features/tasks/FilterPopover/
 import { TaskEmptyState } from '../../components/features/tasks/EmptyState';
 import { useMergedTaskCategories } from '../../hooks/useMergedTaskCategories';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
+import {
+  CATEGORY_PARAM,
+  CHAT_PARAM,
+  LIST_PARAM,
+  TASK_PARAM,
+  VIEW_PARAM,
+  listTypeFromViewParam,
+  tasksPathname,
+  viewParamFromListType,
+} from '../../lib/taskShellSearch';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   DndContext,
@@ -162,7 +173,13 @@ const ALL_SECTIONS_OPEN: Record<string, boolean> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function Tasks() {
-  const [selectedList, setSelectedList] = useState<ListType>('all');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const overlayPushedRef = useRef(false);
+  const [selectedList, setSelectedList] = useState<ListType>(() =>
+    listTypeFromViewParam(new URLSearchParams(window.location.search).get(VIEW_PARAM)),
+  );
   const [selectedCustomListId, setSelectedCustomListId] = useState<string | null>(null);
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
   const [isCreateListOpen, setIsCreateListOpen] = useState(false);
@@ -222,7 +239,73 @@ export function Tasks() {
     confirm: confirmPendingTask,
     reject: rejectPendingTask,
     update: updatePendingTask,
+    refresh: refreshPendingTasks,
   } = usePendingTasks();
+
+  const pushShellSearch = useCallback(
+    (mutate: (params: URLSearchParams) => void, replace = false) => {
+      const params = new URLSearchParams(location.search);
+      mutate(params);
+      const search = params.toString();
+      navigate(
+        { pathname: tasksPathname(location.pathname), search: search ? `?${search}` : '' },
+        { replace },
+      );
+    },
+    [location.pathname, location.search, navigate],
+  );
+
+  const closeOverlayViaHistory = useCallback(
+    (keys: string[]) => {
+      const params = new URLSearchParams(location.search);
+      const hadKey = keys.some((key) => params.has(key));
+      if (!hadKey) return false;
+      if (overlayPushedRef.current && window.history.length > 1) {
+        overlayPushedRef.current = false;
+        navigate(-1);
+        return true;
+      }
+      pushShellSearch((next) => {
+        keys.forEach((key) => next.delete(key));
+      }, true);
+      return true;
+    },
+    [location.search, navigate, pushShellSearch],
+  );
+
+  useEffect(() => {
+    const lista = searchParams.get(LIST_PARAM);
+    const categoria = searchParams.get(CATEGORY_PARAM);
+    const view = searchParams.get(VIEW_PARAM);
+
+    if (lista) {
+      setSelectedCustomListId(lista);
+      setSelectedCategoryName(null);
+      setSelectedList('all');
+    } else if (categoria) {
+      setSelectedCategoryName(categoria);
+      setSelectedCustomListId(null);
+      setSelectedList('all');
+    } else {
+      setSelectedCustomListId(null);
+      setSelectedCategoryName(null);
+      setSelectedList(listTypeFromViewParam(view));
+    }
+
+    const taskId = searchParams.get(TASK_PARAM);
+    setSelectedTask((prev) => {
+      if (!taskId) return null;
+      if (prev?.id === taskId) return prev;
+      return tasks.find((item) => item.id === taskId) ?? prev;
+    });
+    if (!taskId) {
+      setExpandedFromList(false);
+      setTaskPinnedInCenter(false);
+    }
+
+    const chatOpen = searchParams.get(CHAT_PARAM) === '1';
+    setIsChatOpen(chatOpen);
+  }, [searchParams, tasks]);
 
   useEffect(() => {
     // Keep selectedTask completion in sync with global tasks state
@@ -322,7 +405,8 @@ export function Tasks() {
     setChatInitialAttachments(undefined);
     setExpandedFromList(false);
     setTaskPinnedInCenter(false);
-  }, []);
+    closeOverlayViaHistory([CHAT_PARAM]);
+  }, [closeOverlayViaHistory]);
 
   const handleEdit = (task: any) => {
     // Keep an open chat on the right; open task details in the center column.
@@ -334,14 +418,16 @@ export function Tasks() {
   };
 
   const handleTaskClick = (task: Task) => {
-    // Keep an open chat on the right; open task details in the center column
-    // (over the list) instead of replacing the conversation panel.
     if (isChatOpen) {
       setExpandedFromList(false);
       setTaskPinnedInCenter(true);
     }
     setSelectedTask(task);
     setSelectedPendingTask(null);
+    overlayPushedRef.current = true;
+    pushShellSearch((params) => {
+      params.set(TASK_PARAM, task.id);
+    });
   };
 
   const handleToggleCompletion = async (taskId: string) => {
@@ -373,6 +459,7 @@ export function Tasks() {
     setExpandedFromList(false);
     setTaskPinnedInCenter(false);
     setIsChatOpen(false);
+    closeOverlayViaHistory([TASK_PARAM, CHAT_PARAM]);
   };
 
   const handlePendingTaskClick = (task: PendingTask) => {
@@ -414,8 +501,12 @@ export function Tasks() {
       setTaskPinnedInCenter(true);
       setChatMode('task');
       setIsChatOpen(true);
+      overlayPushedRef.current = true;
+      pushShellSearch((params) => {
+        params.set(CHAT_PARAM, '1');
+      });
     }
-  }, [isMobile]);
+  }, [isMobile, pushShellSearch]);
 
   const handleCloseMobileChatOverlay = useCallback(() => {
     setIsMobileChatOverlayOpen(false);
@@ -432,13 +523,18 @@ export function Tasks() {
       setChatInitialAttachments(attachments && attachments.length > 0 ? attachments : undefined);
     }
     setIsChatOpen(true);
-  }, []);
+    overlayPushedRef.current = true;
+    pushShellSearch((params) => {
+      params.set(CHAT_PARAM, '1');
+    });
+  }, [pushShellSearch]);
 
   const handleCloseChat = useCallback(() => {
     setIsChatOpen(false);
     setChatInitialMessage(undefined);
     setChatInitialAttachments(undefined);
-  }, []);
+    closeOverlayViaHistory([CHAT_PARAM]);
+  }, [closeOverlayViaHistory]);
 
   // Closes whichever panel is currently shown in the right slot. Used by the
   // mobile bottom sheet (backdrop click / drag-to-close).
@@ -1057,16 +1153,22 @@ export function Tasks() {
   }, [tasks]);
 
   const handleListSelect = (listType: ListType) => {
-    // Returning to the all-view: restore every section to its default open state
     if (listType === 'all') {
       setOpenSections(ALL_SECTIONS_OPEN);
-      // Chat forces the sidebar collapsed; closing it restores the pinned state.
       if (isChatOpen) dismissChatForTaskPanel();
     }
     setSelectedList(listType);
     setSelectedCustomListId(null);
     setSelectedCategoryName(null);
     setSelectedTask(null);
+    pushShellSearch((params) => {
+      params.delete(LIST_PARAM);
+      params.delete(CATEGORY_PARAM);
+      params.delete(TASK_PARAM);
+      const view = viewParamFromListType(listType);
+      if (view) params.set(VIEW_PARAM, view);
+      else params.delete(VIEW_PARAM);
+    });
   };
 
   const handleCustomListSelect = (listId: string) => {
@@ -1076,6 +1178,13 @@ export function Tasks() {
     setSelectedCategoryName(null);
     setSelectedCustomListId((prev) => (prev === listId ? null : listId));
     setSelectedTask(null);
+    pushShellSearch((params) => {
+      params.delete(CATEGORY_PARAM);
+      params.delete(TASK_PARAM);
+      params.delete(VIEW_PARAM);
+      if (isDeselecting) params.delete(LIST_PARAM);
+      else params.set(LIST_PARAM, listId);
+    });
   };
 
   const handleCategorySelect = (categoryName: string) => {
@@ -1085,6 +1194,13 @@ export function Tasks() {
     setSelectedCustomListId(null);
     setSelectedCategoryName((prev) => (prev === categoryName ? null : categoryName));
     setSelectedTask(null);
+    pushShellSearch((params) => {
+      params.delete(LIST_PARAM);
+      params.delete(TASK_PARAM);
+      params.delete(VIEW_PARAM);
+      if (isDeselecting) params.delete(CATEGORY_PARAM);
+      else params.set(CATEGORY_PARAM, categoryName);
+    });
   };
 
   const allSectionsExpanded = Object.entries(openSections)
@@ -2034,7 +2150,7 @@ export function Tasks() {
               description="Crie sua primeira tarefa para começar a organizar seu dia."
             />
           )}
-          {(isPendingTasksLoading || pendingTasksError || pendingTasks.length > 0) && (
+          {(pendingTasksError || pendingTasks.length > 0) && (
             <Collapsible
               label={pendingTasks.length > 0 ? `Integrações (${pendingTasks.length})` : 'Integrações'}
               defaultOpen={true}
@@ -2047,7 +2163,17 @@ export function Tasks() {
                 )}
 
                 {pendingTasksError && (
-                  <p className={styles.pendingSectionError}>{pendingTasksError}</p>
+                  <div className={styles.pendingSectionErrorRow}>
+                    <p className={styles.pendingSectionError}>{pendingTasksError}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      onClick={() => void refreshPendingTasks()}
+                    >
+                      Tentar novamente
+                    </Button>
+                  </div>
                 )}
 
                 {pendingTasks.length > 0 && (

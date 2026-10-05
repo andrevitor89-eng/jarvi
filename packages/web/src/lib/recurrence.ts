@@ -40,8 +40,10 @@ const CUSTOM_FREQUENCY_UNIT_PT: Record<'hourly' | 'daily' | 'weekly' | 'monthly'
 const pluralizeUnit = (count: number, [singular, plural]: [string, string]): string =>
   count === 1 ? singular : plural;
 
-export function parseRecurrenceConfig(raw: string | null | undefined): RecurrenceConfig | null {
+export function parseRecurrenceConfig(raw: unknown): RecurrenceConfig | null {
   if (!raw) return null;
+  if (typeof raw === 'object') return raw as RecurrenceConfig;
+  if (typeof raw !== 'string') return null;
   try {
     return JSON.parse(raw) as RecurrenceConfig;
   } catch {

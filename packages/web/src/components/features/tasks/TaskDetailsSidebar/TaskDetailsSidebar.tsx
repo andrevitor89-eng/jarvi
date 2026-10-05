@@ -132,13 +132,13 @@ export function TaskDetailsSidebar({
       // Reset description state for the new task (first load or task switch).
       setDescription(task.description || '');
     }
-    // Always update the other fields (title, date, time, titleDraft).
-    setTitle(task.title || '');
-    setSelectedDate(parseDateString(task.due_date));
-    setSelectedTime(task.time || '');
-    if (!isEditingTitle) {
+
+    if (isFirstLoad || idChanged) {
+      setTitle(task.title || '');
       setTitleDraft(task.title || '');
     }
+    setSelectedDate(parseDateString(task.due_date));
+    setSelectedTime(task.time || '');
     prevTaskRef.current = task;
     prevTaskIdRef.current = task.id;
   }, [task, isEditingTitle]);
@@ -429,7 +429,7 @@ export function TaskDetailsSidebar({
 
   // Handle date chip click
   const handleDateChipClick = () => {
-    setShowDatePicker(prev => !prev);
+    setShowDatePicker((open) => !open);
   };
 
   // Close pickers when sidebar closes
@@ -577,6 +577,7 @@ export function TaskDetailsSidebar({
         recurrence_until:
           next.recurrenceConfig?.until.type === 'onDate' ? next.recurrenceConfig.until.date ?? null : null,
       });
+      setShowFrequencyPicker(false);
     } catch (error) {
       console.error('Failed to update task frequency:', error);
       if (needsDefaultDate) setSelectedDate(null);
@@ -773,6 +774,7 @@ export function TaskDetailsSidebar({
 
         {/* Date Picker Popover */}
         <TaskDatePicker
+          key={`${task?.id ?? 'none'}-date-${showDatePicker ? 'open' : 'closed'}`}
           isOpen={showDatePicker}
           onClose={() => setShowDatePicker(false)}
           selectedDate={selectedDate || undefined}
